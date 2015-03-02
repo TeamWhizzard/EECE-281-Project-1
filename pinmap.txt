@@ -1,0 +1,25 @@
+Project 1 Pin Map
+=================
+Digital Pins
+ 0	Bluetooth TX
+ 1	Bluetooth RX
+ 2	Motor 1 Input A
+ 3	Rangerfinder 1 Trigger
+ 4	Motor 1 Input B
+ 5	
+ 6	
+ 7	Motor 2 Input A
+ 8	Motor 2 Input B
+ 9	PWM 1 (Motor 1 Speed)
+10	PWM 2 (Motor 2 Speed)
+11	
+12	
+13	
+
+Analog Pins
+ 0	Motor 1 Current Sensing
+ 1	Motor 2 Current Sensing
+ 2	DHT11 Temperature/Humidity Input
+ 3	Rangerfinder 1 Echo
+ 4	
+ 5	
