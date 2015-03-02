@@ -36,78 +36,72 @@ void setup()
   dht.begin();
 }
 
-void intro(){
+void intro() {
   Serial.println("START OF PROGRAM");
   Serial.println("__________________________________________");
   Serial.println("");
-  
+
   temperature = dht.readTemperature();
   Serial.print("Temperature: ");
   Serial.println(temperature);
-  
+
   humidity = dht.readHumidity() / 100;
   Serial.print("Humidity: ");
   Serial.println(humidity);
-  
-  distance();
+
+  reportDistance();
   Serial.println("");
-  
+
   Serial.println("__________________________________________");
 }
 
-void distance(){
+void reportDistance() {
   echoPulseFront = float(sonar.ping_median()); // returns time to and from object
   // distance = velocity * time where velocity is speed of sound
   velocity = (331.3 + (0.6 * temperature)); // speed of sound
- 
+
   const float gasConst = 0.2869; // gas constant in air in kj/kg*K
-  float cp = 1.005 + 1.82*humidity; // heat capacity for constant pressure in kj/kj*K where 1.005 is the heat capacity in dry air, and 1.82 is the heat capacity of water vapor
+  float cp = 1.005 + 1.82 * humidity; // heat capacity for constant pressure in kj/kj*K where 1.005 is the heat capacity in dry air, and 1.82 is the heat capacity of water vapor
   float cv = cp - gasConst; // heat capacity for constant volume
-  float speedOfSound = powf((cp/cv)*gasConst*(temperature+273.15)*0.00001, 0.5); // cm/s
- 
-  //Serial.print("Velocity right: ");
-  //Serial.print(velocity);
-  //Serial.print("; Velocity new: ");
-  //Serial.print(speedOfSound);
-  
-  time = (echoPulseFront) / 2; // devide by two because functions returns twice the time needed
+  float speedOfSound = powf((cp / cv) * gasConst * (temperature + 273.15) * 0.00001, 0.5); // cm/s
+
+  time = (echoPulseFront) / 2; // divide by two because functions returns twice the time needed
   distanceCm = (velocity * time) / 10000;
-  Serial.print("; Distance: ");
   Serial.print(distanceCm);
+  Serial.print(" ");
 }
 
-void reportCurrent(){
-  Serial.print("; Right current: ");
-  Serial.print(motors.getM1CurrentMilliamps());
-  Serial.print("; Left current: ");
-  Serial.print(motors.getM2CurrentMilliamps());
+void reportCurrent() {
+  Serial.print(motors.getM1CurrentMilliamps()); // M1 = Right Motor
+  Serial.print(" ");
+  Serial.print(motors.getM2CurrentMilliamps()); // M2 = Left Motor
+  Serial.print(" ");
 }
 
-void motorControl(int speed1, int threshold){
-  Serial.println("Speed: ");
-  Serial.println(speed1);
-  Serial.println("");
-  if(distanceCm == 0 || distanceCm >= threshold)
-    motors.setSpeeds(speed1, speed1);
-  
-  while(distanceCm == 0 || distanceCm >= threshold){
-    distance();
+void motorControl(int velocity, int threshold) {
+  if (distanceCm == 0 || distanceCm >= threshold) {
+    motors.setSpeeds(velocity, velocity);
+  }
+  while (distanceCm == 0 || distanceCm >= threshold) {
+    Serial.print(velocity);
+    Serial.print(" ");
+    reportDistance();
     reportCurrent();
     Serial.println("");
   }
 }
 
-void loop(){
-  delay(5000);
-  intro();
-  
+void loop() {
+  delay(10000);
+  //intro();
+
   motorControl(400, DISTANCE_THRESHOLD);
   motorControl(300, 40);
   motorControl(150, 20);
   motorControl(100, 10);
   motorControl(50, 5);
-  
+
   motors.setBrakes(400, 400);
-  
-  delay(10000);
+
+  //delay(10000);
 }
