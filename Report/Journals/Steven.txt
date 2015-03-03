@@ -1,0 +1,51 @@
+Wednesday, February 23
+---------------------
+Extensively studied motor shield data sheet with Diksha.
+
+Friday, February 27
+-------------------
+Experimented with accessing current information. Broke motor shield in the process.
+
+Saturday, February 28
+---------------------
+Purchased a new motor shield.
+Installed new motor shield and wrote some basic code to bring us back to where we were before.
+Conducted tests with motor shield. Ran into issues with erratic motor behaviour.
+Researched issue of motor noise. Solved by soldering a 100 nF capacitor over each motor.
+Soldered Bluetooth connections onto prototype shield.
+Got Bluetooth working sucessfully.
+
+Sunday, March 1
+---------------
+Added 7 links to references, mostly related to accurate navigation.
+Created pinmap.txt for tracking our pin usage.
+Soldered temperature/humidity sensor to prototype shield with Theresa.
+
+Monday, March 2
+---------------
+Group discussion on driving the robot straight.
+Found paper on 2WD, added it to referenes.
+PacMan ghost group discussion.
+Table Dry Erase group experiment. Added image to git.
+Git documentation standardized.
+Discussion with Farshid about open/closed loops.
+As a group we sourced infrared input/output sensors.
+Added videos to git of erratic motor behaviour before and after 100 nF capacitors added.
+
+Tuesday, March 3
+----------------
+
+Wednesday, March 4
+------------------
+
+Thursday, March 5
+-----------------
+
+Friday, March 6
+---------------
+
+Saturday, March 7
+-----------------
+
+Sunday, March 8
+---------------
