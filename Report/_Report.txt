@@ -6,7 +6,7 @@ Group’s Lab-Bench #s:
 
 Student names, numbers and contribution percentages:    
 Name				Student ID		Contribution Percentage
-Diksha Bansal		
+Diksha Bansal		45000122
 Anthony Chui		
 John Deppe			
 Logan Gilmore		
