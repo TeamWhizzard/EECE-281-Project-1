@@ -1,0 +1,59 @@
+Wednesday, February 23
+--------------------
+Started running some tests on the motors doing simple forwards and backwards motion as well as turning.
+
+
+Sunday, March 1
+--------------------
+Worked on combining the sensor code and the motor control code with Anthony, which resulted in the creation of turtle.ino
+
+Got the robot to drive straight at a wall at full speed and then gradually slow down to a stop using several set speeds and distance thresholds.
+
+
+Monday, March 2
+--------------------
+Group discussion on driving the robot straight.
+
+Table Dry Erase group experiment.
+
+
+Tuesday, March 3
+--------------------
+Added autonomous turning to the turtle.ino sketch. Now it turns left and measures the distance to the left wall, then turns right and measures the distance to the right wall. If the distance to the right wall is over one meter or greater than the path to the left, the robot moves to the right wall. If not, then it turns back to the left and proceeds down the left path.
+
+Made the design decision to use 0 (a non tolerated value) for distance measurements since the range finder is limited to 4 meters and sends back 0 if distance exceeds the limit.
+
+Played around with some values to try to get motorControl() to get the robot to go straight. Couldn’t get the values to produce straight runs constantly, despite several periods of straight motion.
+
+In the end the autonomous portion of the robot is essentially completed, now we need to focus on accuracy in terms of a straight path and improving turning as much as we can.
+
+
+Tuesday, March 3
+--------------------
+
+
+
+Wednesday, March 4
+--------------------
+
+
+
+Thursday, March 5
+--------------------
+
+
+
+Friday, March 6
+--------------------
+
+
+
+Saturday, March 7
+--------------------
+
+
+
+Sunday, March 8
+--------------------
+
+
