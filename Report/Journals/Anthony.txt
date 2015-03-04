@@ -1,0 +1,43 @@
+Wednesday, February 23
+--------------------
+Started implementing sensors as well as studying data sheets of motors and all sensors
+Friday, February 27
+--------------------
+Began using the accelerometer/gyroscope as calibration for rotation. This involved turning the motors for a given duration 
+of time and integrating the degree per second data to find the total degrees turned. Using this data, we could turn
+the turtle up to any given angle. Only an approximation of integration was used, by summing up (degrees per second *
+delay duration). This process's accuracy could be significantly increased by lowering the delay duration to get more
+gyroscope readings. This design decision was chosen over finding a magic number of time delay that could change given 
+changing variables like current for the motor.
+
+Sunday, March 1
+--------------------
+Combined sensor code(ultrasonic and temperature) with motor code to work towards a gradual and graceful movement from 
+the turtle. This involved writing code that gradually slowed down when moving towards a wall as opposed to instantaneously 
+stopping. Encountered problems with the turtle not moving straight unless correcting for it with an open-circuit factor
+by modifying one wheels' speed to be roughly 99% of the other's. 
+Monday, March 2
+--------------------
+Discussed better methods in realigning turtle movement over magic numbers.
+Turtle movement was inconsistent and unreliable due to constantly differing wheel speeds.
+From discussion with Farshid, the group decided on adding encoders to the wheels to track number of rotations.
+
+Tuesday, March 3
+--------------------
+Began creation of a technical demo of the encoders for the turtle.
+Used a stepper motor and a lego wheel to simulate wheel movement on our turtle.
+Attatched an infrared emitter and receiver on opposite ends of a given slit of the lego wheel.
+The receiver would count the number of times it receives light through a slit, and hence the number of rotations.
+By testing this functionality out first, we could then translate it over to our actual wheels where if there is a delta
+in the number of rotations between each wheel, we could correct for it by proportionally speeding up one wheel for a duration of time.
+
+Wednesday, March 4
+--------------------
+Thursday, March 5
+--------------------
+Friday, March 6
+--------------------
+Saturday, March 7
+--------------------
+Sunday, March 8
+--------------------
