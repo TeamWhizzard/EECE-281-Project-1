@@ -34,6 +34,9 @@ Added videos to git of erratic motor behaviour before and after 100 nF capacitor
 
 Tuesday, March 3
 ----------------
+Prototyped a visual encoder demo with Anthony that ended up not being needed.
+Learned how to wire up a stepper motor.
+John came up with a good idea to use a wire frame and a fabric such as satin for a ghost model
 
 Wednesday, March 4
 ------------------
@@ -46,6 +49,7 @@ Friday, March 6
 
 Saturday, March 7
 -----------------
+(One or two people should go to Dressew to get ghost model materials)
 
 Sunday, March 8
 ---------------
