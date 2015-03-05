@@ -35,7 +35,7 @@ Tuesday, March 3
 
 Wednesday, March 4
 --------------------
-
+Ran some voltage and current tests on the motors and complete Arduino circuit with Steven. Results/Data are in the report folder in a .txt file labeled “Voltage_and_Current_Testing”
 
 
 Thursday, March 5
