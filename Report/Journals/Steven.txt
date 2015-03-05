@@ -40,6 +40,8 @@ John came up with a good idea to use a wire frame and a fabric such as satin for
 
 Wednesday, March 4
 ------------------
+Worked in conjunction with Logan to calculate robot voltages and currents for motors and arduino.
+Occasionally assisted Anthony with controller logic.
 
 Thursday, March 5
 -----------------
