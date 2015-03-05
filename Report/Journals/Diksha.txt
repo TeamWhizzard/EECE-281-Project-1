@@ -1,0 +1,17 @@
+25th Feb:
+ 1. team organization, split of work, basic draft of the functionaities (desired and required), time line created
+ 2. Assembling the components of the Turtle together to form the basic structure  with Theresesa. 
+
+26th Feb:
+ 1. studied the ic with Steven
+ 
+27th Feb: (Theresa)
+  1. soldered the battery holder, which unfortunately, started smoking due to short circuit. 
+  2. also, soldered other wires and parts. 
+
+2nd Mar:(group)
+  1. tested the robot, drew the routes. 
+
+4th Mar:
+  1. Built the basic circuit for encoder with John using interrupt. This was to minimize the delay as much as possible. 
+  2. Wrote some code for the same. 
