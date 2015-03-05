@@ -10,7 +10,12 @@ const int RIGHT_THRESHOLD = -4000;
 const int LEFT_THRESHOLD = 4000;
 const int FORWARD_THRESHOLD = 4000;
 const int SLOWDOWN_THRESHOLD = -4000;
+const int RIGHT_END_BOUNDARY = -90;
+const int RIGHT_START_BOUNDARY = -20;
+const int LEFT_START_BOUNDARY = 20;
+const int LEFT_END_BOUNDARY = 90;
 const float FS_ZERO_GYRO_SCALE = 131;
+float totalDegrees = 0;
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
 void setup(){
@@ -45,10 +50,9 @@ void printAll(){
       Serial.print(" | GyZ = "); Serial.println(GyZ);
 }
 void countRotate() {
-  float totalDegrees = 0;
   float prevDegrees;
   float currDegrees;
-  while (1) {
+  do {
     readAll();
     float GyXdps = GyX / FS_ZERO_GYRO_SCALE;
     Serial.print("Degrees per Second: ");
@@ -64,7 +68,7 @@ void countRotate() {
     Serial.println(totalDegrees);
     prevDegrees = currDegrees;
     delay(readDelay);
-  }
+  } while (abs(currDegrees) >= 0.7)
 }
 //Checks for a turn motion and sets motors to turn appropriately.
 void checkTurnControl(){
@@ -97,6 +101,15 @@ void loop(){
       readAll();
       //checkTurnControl();
       countRotate();
+      if (totalDegrees >= LEFT_END_BOUNDARY || totalDegrees <= LEFT_START_BOUNDARY){
+        Serial.print("TURNING LEFT");
+      }
+      else if (totalDegrees > LEFT_START_BOUNDARY || totalDegrees < RIGHT_START_BOUNDARY){
+        Serial.print("CENTERED");
+      }
+      else if (totalDegrees >= RIGHT_START_BOUNDARY || totalDegrees <= RIGHT_END_BOUNDARY){
+        Serial.print("TURNING RIGHT");
+      }
       printAll();
       delay(readDelay);
 }
