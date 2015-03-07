@@ -8,11 +8,12 @@ const int MPU=0x68;  // I2C address of the MPU-6050
 const int readDelay = 50;   //Delay to read new acceleration/angular velocity values
 const int FORWARD_THRESHOLD = 4000;   //Acceleration (scaled) threshold value to speed up
 const int SLOWDOWN_THRESHOLD = -4000;  //Accereration (scaled) threshold value to slow down
+const int COUNT_ROTATE_THRESHOLD = 100;
 const int RIGHT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = -20;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = 20;  //Start of degree boundary to indicate turning left
 const int LEFT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning left 
-const float FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
+const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 float totalDegrees = 0;  //Variable to keep track of total degrees turned, with the controller centered being 0 degrees
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;  //Variables to keep track of acceleration/gyroscope values in all axises
 
@@ -43,10 +44,14 @@ void readAll(){
 
 //Prints all the acceleration and angular velocity readings
 void printAll(){
+      //Print out the acceleration values for the x, y, z axises (scaled by a factor of G in m/s^2)
       Serial.print("AcX = "); Serial.print(AcX);
       Serial.print(" | AcY = "); Serial.print(AcY);
       Serial.print(" | AcZ = "); Serial.print(AcZ);
+      
       Serial.print(" | Tmp = "); Serial.print(Tmp/340.00+36.53);  //equation for temperature in degrees C from datasheet
+      
+      //Print out the angular velocity values about the x, y, z axises (scaled by a factor in degrees/second)
       Serial.print(" | GyX = "); Serial.print(GyX);
       Serial.print(" | GyY = "); Serial.print(GyY);
       Serial.print(" | GyZ = "); Serial.println(GyZ);
@@ -54,19 +59,19 @@ void printAll(){
 
 //Counts the degrees rotated 
 void countRotate() {
-  do {
     readAll();  //Update all accel/gyro values
-    float GyXdps = GyX / FS_ZERO_GYRO_SCALE;  //Convert the gyro reading to degrees per second
-    float currDegrees = GyXdps * readDelay / 1000;  //Perform approximate integration by multiplying degree per second with the delay
-    if (abs(currDegrees) >= 0.7){  //Gyro readings hover below 0.7 dps at rest, don't take these values
-        totalDegrees += currDegrees  //Iteratively sum the current degrees into total degrees
-    }
-    Serial.print("Degrees per Second: ");  //Print out the dps reading
-    Serial.println(GyXdps);
-    Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
-    Serial.println(totalDegrees);  
-    delay(readDelay);    //Delay for the given duration inbetween reads
-  } while (abs(currDegrees) >= 0.7)  //Only loop while the controller is moving (only reading inside loop, hence do while)
+    while (GyX > COUNT_ROTATE_THRESHOLD)  //Only loop (count degrees) when the controller is moving 
+      float GyXdps = GyX / FS_ZERO_GYRO_SCALE;  //Convert the gyro reading to degrees per second
+      float currDegrees = GyXdps * readDelay / 1000;  //Perform approximate integration by multiplying degree per second with the delay
+      if (abs(currDegrees) >= 0.7){  //Gyro readings hover below 0.7 dps at rest, don't take these values
+          totalDegrees += currDegrees  //Iteratively sum the current degrees into total degrees
+      }
+      Serial.print("Degrees per Second: ");  //Print out the dps reading
+      Serial.println(GyXdps);
+      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
+      Serial.println(totalDegrees);  
+      delay(readDelay);    //Delay for the given duration inbetween reads
+  } 
 }
 
 //Checks for a turn motion and sets motors to turn appropriately.
@@ -81,6 +86,8 @@ void checkTurnControl(){
     delay(1500);
   }
 }
+
+//Checks whether the controller is in a boundary zone, and make the robot turn accordingly. 
 void checkRotateControl(){
       //In the left boundary zone? Turn robot left while controller in left zone
       if (totalDegrees >= LEFT_END_BOUNDARY || totalDegrees <= LEFT_START_BOUNDARY){
