@@ -40,12 +40,14 @@ Ran some voltage and current tests on the motors and complete Arduino circuit wi
 
 Thursday, March 5
 --------------------
-
+**DAY OFF**
 
 
 Friday, March 6
 --------------------
+Made and implemented the collision function into the main program with Theresa. After some testing realized the collision sensor was either too sensitive to the point where it would be set off by the acceleration or deceleration of the robot, or it wasn’t sensitive enough where it would require an unreasonably large hit to be set off.
 
+Did some research into the LCD. Need to use a different library due to the extra component that we will be using to limit the amount of pins that we need to use. Had difficulty getting the program to recognize the library, and had in the end couldn’t get it to work today.
 
 
 Saturday, March 7
