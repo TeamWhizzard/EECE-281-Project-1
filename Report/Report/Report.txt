@@ -1,12 +1,12 @@
 EECE 281 Section 202
 Project 1
-Lab section:
-Group #:
-Group’s Lab-Bench #s:
+Lab section: L2D
+Group #: 
+Group’s Lab-Bench #s: 7A and 7B
 
 Student names, numbers and contribution percentages:    
 Name				Student ID		Contribution Percentage
-Diksha Bansal		45000122
+Diksha Bansal		 45000122
 Anthony Chui		
 John Deppe			
 Logan Gilmore		
@@ -22,7 +22,11 @@ It should include the course name and number, lab section, group and bench numbe
 Table of Contents
 -----------------
 Contributions
+
+
 Introduction and motivations
+
+In this project, we were asked to build an autonomous robot 
 Project Description
 Conclusions
 References and bibliography
