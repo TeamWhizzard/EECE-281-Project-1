@@ -33,10 +33,20 @@ in the number of rotations between each wheel, we could correct for it by propor
 
 Wednesday, March 4
 --------------------
+Wired up a prototype of the MP6050 using the arduino nano.
+Wrote an arduino sketch for our controller that would use the gyroscope to read tilt information 
+and move the robot appropriately
 Thursday, March 5
 --------------------
+Day off
+
 Friday, March 6
 --------------------
+Wired up new header pins on the bluetooth and MP6050 by soldering.
+Soldering could have been avoided by Steve by simply bending the pins by 90 degrees as I did on the bluetooth
+Soldered on more devices as needed onto the arduino shield and circuit cutouts
+
+
 Saturday, March 7
 --------------------
 Sunday, March 8
