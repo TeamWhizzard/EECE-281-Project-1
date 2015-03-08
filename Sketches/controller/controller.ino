@@ -8,7 +8,7 @@ const int MPU=0x68;  // I2C address of the MPU-6050
 const int readDelay = 50;   //Delay to read new acceleration/angular velocity values
 const int FORWARD_THRESHOLD = 4000;   //Acceleration (scaled) threshold value to speed up
 const int SLOWDOWN_THRESHOLD = -4000;  //Accereration (scaled) threshold value to slow down
-const int COUNT_ROTATE_THRESHOLD = 100;  //
+const int COUNT_ROTATE_THRESHOLD = 100;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
 const int RIGHT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = -20;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = 20;  //Start of degree boundary to indicate turning left
@@ -81,12 +81,12 @@ void countRotate() {
 
 //Checks for a turn motion and sets motors to turn appropriately.
 void checkTurnControl(){
-  readAll();
-  if (AcY >= FORWARD_THRESHOLD){
+  readAll();  //Update accell readings
+  if (AcY >= FORWARD_THRESHOLD){  //If acceleration is greater than the threshold, speed up
     Serial.println("SPEEDING UP");
     delay(1500);
   }
-  else if (AcY <= SLOWDOWN_THRESHOLD){
+  else if (AcY <= SLOWDOWN_THRESHOLD){  //Else check if its lower than the threshold, slow down
     Serial.println("SLOWING DOWN");
     delay(1500);
   }
