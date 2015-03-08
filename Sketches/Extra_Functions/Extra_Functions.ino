@@ -105,6 +105,12 @@ void setup() {
   delay(100);
 }
 
+void bluetoothData(int pace, String orientation){
+  Serial.print(pace); // prints the speed to the serial monitor
+  Serial.print("; ");
+  Serial.println(orientation); // prints the orientation to the serial monitor
+}
+
 // clears a given line on the lcd
 void clearLine(int line){
   lcd.setCursor(0,line);

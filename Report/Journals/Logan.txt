@@ -52,7 +52,7 @@ Did some research into the LCD. Need to use a different library due to the extra
 
 Saturday, March 7
 --------------------
-
+Wrote some functions to control an LCD mounted on the robot that display distance in both a written and graphical format. They were initially created in Extra_Functions.ino and then, after thorough testing, were added to turtle.ino
 
 
 Sunday, March 8

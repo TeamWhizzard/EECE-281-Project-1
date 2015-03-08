@@ -155,6 +155,12 @@ void intro() {
   Serial.println("__________________________________________");
 }
 
+void bluetoothData(int pace, String orientation){
+  Serial.print(pace); // prints the speed to the serial monitor
+  Serial.print("; ");
+  Serial.println(orientation); // prints the orientation to the serial monitor
+}
+
 // clears a given line on the lcd
 void clearLine(int line){
   lcd.setCursor(0,line);
@@ -311,6 +317,7 @@ void motorControl(int velocity, int threshold) {
   while (distanceCm == 0 || distanceCm >= threshold) {
     //Serial.print(velocity);
     //Serial.print(" ");
+    bluetoothData(velocity, "Centre");
     reportDistance();
     lcdRefresh();
     reportCurrent();
@@ -357,6 +364,7 @@ void turnControl(){
 // turns the robot 90 degrees to the right
 void turnRight(){
   motors.setSpeeds(-100, 100);
+  bluetoothData(0, "Turning Right");
   delay(1000);
   motors.setBrakes(400, 400);
 }
@@ -364,6 +372,7 @@ void turnRight(){
 // turns the robot 90 degrees to the left
 void turnLeft(){
   motors.setSpeeds(100, -100);
+  bluetoothData(0, "Turning Left");
   delay(1000);
   motors.setBrakes(400, 400);
 }
@@ -371,6 +380,7 @@ void turnLeft(){
 // turns the robot 180 degrees to the left
 void turnAroundLeft(){
   motors.setSpeeds(100, -100);
+  bluetoothData(0, "Turning Left");
   delay(2000);
   motors.setBrakes(400, 400);
 }
@@ -378,6 +388,7 @@ void turnAroundLeft(){
 // turns the robot 180 degrees to the right
 void turnAroundRight(){
   motors.setSpeeds(-100, 100);
+  bluetoothData(0, "Turning Right");
   delay(2000);
   motors.setBrakes(400, 400);
 }
