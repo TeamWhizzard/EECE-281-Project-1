@@ -5,7 +5,7 @@
 
 #include<Wire.h>
 const int MPU=0x68;  // I2C address of the MPU-6050
-const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
+const int readDelay = 125;   //Delay to read new acceleration/angular velocity values
 const int FORWARD_THRESHOLD = 4000;   //Acceleration (scaled) threshold value to speed up
 const int SLOWDOWN_THRESHOLD = -4000;  //Accereration (scaled) threshold value to slow down
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
@@ -68,16 +68,15 @@ void printAll(){
 void countRotate() {
     readAll();  //Update all accel/gyro values
     while (abs(GyZ) >= COUNT_ROTATE_THRESHOLD){  //Only loop (count degrees) when the controller is moving 
-      float GyZdps = GyZ / FS_ZERO_GYRO_SCALE;   //Convert to degrees per second
-      float currDegrees = GyZdps * readDelay / 1000;  //Perform approximate integration by multiplying degree per second with the delay
-      totalDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
-      
-//      Serial.print("Degrees per Second: ");  //Print out the dps reading
-//      Serial.println(GyZdps);
-//      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
-//      Serial.println(totalDegrees);  
       delay(readDelay);    //Delay for the given duration inbetween reads
-      readAll();
+      float GyZdps = GyZ / FS_ZERO_GYRO_SCALE;   //Convert to degrees per second
+      float currDegrees = GyZdps * (readDelay) / 1000;  //Perform approximate integration by multiplying degree per second with the delay
+      totalDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
+      Serial.print("Degrees per Second: ");  //Print out the dps reading
+      Serial.println(GyZdps);
+      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
+      Serial.println(totalDegrees);  
+      readAll(); //Update all accel/gyro values
   }
 }
 
