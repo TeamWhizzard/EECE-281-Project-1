@@ -15,27 +15,102 @@
 int distanceLast; // keeps track of last moisture reading
 char block = 0xFF;
 float distanceCm = 0;
-// array of custom characters that are used to separate a block in the lcd into 5 segments
-byte slice[6][7] = {{B00000,B00000,B00000,B00000,B00000,B00000,B00000,}, {B10000,B10000,B10000,B10000,B10000,B10000,B10000,},
-                    {B11000,B11000,B11000,B11000,B11000,B11000,B11000,}, {B11100,B11100,B11100,B11100,B11100,B11100,B11100,},
-                    {B11110,B11110,B11110,B11110,B11110,B11110,B11110,}, {B11111,B11111,B11111,B11111,B11111,B11111,B11111,}};
 
-// set the LCD address to 0x20 for a 20 chars 4 line display
+// custom character that produces a blank block on the lcd
+byte lineZero[8] = {
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000
+};
+// custom character that produces a single line on the lcd
+byte lineOne[8] = {
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000
+};
+// custom character that produces a double line on the lcd
+byte lineTwo[8] = {
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000
+};
+// custom character that produces a triple line on the lcd
+byte lineThree[8] = {
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100
+};
+// custom character that produces a quadruple line on the lcd
+byte lineFour[8] = {
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110
+};
+// custom character that produces a full block on the lcd
+byte lineFive[8] = {
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111
+};
+
+
+// set the LCD address to 0x27 for a 16 chars 2 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
 
 LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);  // Set the LCD I2C address
 
 void setup() {
-  lcd.begin(16,2);         // initialize the lcd for 20 chars 4 lines and turn on backlight
+  lcd.begin(16,2);         // initialize the lcd for 16 chars 2 lines and turn on backlight
   Serial.begin(9600);
   lcd.clear();
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
   lcd.setBacklight(HIGH);
-  lcd.createChar(0, slice[0]); // creates custom characters from the array
-  delay(10);
-  lcd.write(byte(0));
+  lcd.createChar(0, lineZero);
+  lcd.createChar(1, lineOne);
+  lcd.createChar(2, lineTwo);
+  lcd.createChar(3, lineThree);
+  lcd.createChar(4, lineFour);
+  lcd.createChar(5, lineFive);
   delay(100);
+}
+
+// clears a given line on the lcd
+void clearLine(int line){
+  lcd.setCursor(0,line);
+  lcd.print("                ");
+  delay(20);
+  lcd.setCursor(0,line);
 }
 
 // distanceLive() - displays bar representation of most recent distance reading on bottom line of LCD display
@@ -54,24 +129,19 @@ void distanceLive(int distanceNew){
     }
     // clear the bottom of the LCD
     else if(distanceCm <= 3){
-      lcd.setCursor(0,1);
-      lcd.print("                ");
+      clearLine(1);
       distanceNew = 0;
     }
     // depending on the value between 4 and 13 it fills in two blocks of the LCD using lines thus splitting two blocks into 10 segments
     else if(distanceCm >= 4 && distanceCm <= 13){
       int charVal = distanceCm - 3;
-      lcd.setCursor(0,1);
-      lcd.print("                ");
-      delay(20);
-      lcd.setCursor(0,1);
+      clearLine(1);
       // 
       if(charVal > 4){
         lcd.print((String) block);
-        lcd.setCursor(1,1);
-        int charVal = charVal - 5;
+        charVal = charVal - 5;
       }
-      lcd.createChar(0, slice[charVal]);
+      lcd.write(byte(charVal));
     }
   }
   
@@ -201,5 +271,11 @@ void loop() {
   distanceCm = 9;
   lcdRefresh();
   distanceCm = 10;
+  lcdRefresh();
+  distanceCm = 11;
+  lcdRefresh();
+  distanceCm = 12;
+  lcdRefresh();
+  distanceCm = 13;
   lcdRefresh();
 }
