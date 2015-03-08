@@ -1,0 +1,4 @@
+http://www.geekmomprojects.com/gyroscopes-and-accelerometers-on-a-chip/
+http://www.analog.com/media/en/technical-documentation/application-notes/AN-1057.pdf
+
+Both links explain combination of gyro and accell readings into a complimentary filter to get the best angle calculations
