@@ -5,17 +5,18 @@
 
 #include<Wire.h>
 const int MPU=0x68;  // I2C address of the MPU-6050
-const int readDelay = 50;   //Delay to read new acceleration/angular velocity values
+const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
 const int FORWARD_THRESHOLD = 4000;   //Acceleration (scaled) threshold value to speed up
 const int SLOWDOWN_THRESHOLD = -4000;  //Accereration (scaled) threshold value to slow down
-const int COUNT_ROTATE_THRESHOLD = 100;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
+const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
 const int RIGHT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning right
-const int RIGHT_START_BOUNDARY = -20;  //Start of degree boundary indicate turning right
-const int LEFT_START_BOUNDARY = 20;  //Start of degree boundary to indicate turning left
+const int RIGHT_START_BOUNDARY = -30;  //Start of degree boundary indicate turning right
+const int LEFT_START_BOUNDARY = 30;  //Start of degree boundary to indicate turning left
 const int LEFT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning left 
 const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 float totalDegrees = 0;  //Variable to keep track of total degrees turned, with the controller centered being 0 degrees
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;  //Variables to keep track of acceleration/gyroscope values in all axises
+
 enum controlState {  //enumeration to cleanly maintain state of controller
   left,
   center,
@@ -30,7 +31,8 @@ void setup(){
       Wire.write(0);     // set to zero (wakes up the MPU-6050)
       Wire.endTransmission(true);
       Serial.begin(9600);
-}
+      Serial.println("C");
+    }
 
 //Updates all acceleration and angular velocity readings
 void readAll(){
@@ -65,18 +67,18 @@ void printAll(){
 //Counts the degrees rotated 
 void countRotate() {
     readAll();  //Update all accel/gyro values
-    while (GyX > COUNT_ROTATE_THRESHOLD){  //Only loop (count degrees) when the controller is moving 
-      float GyXdps = GyX / FS_ZERO_GYRO_SCALE;
-      float currDegrees = GyXdps * readDelay / 1000;  //Perform approximate integration by multiplying degree per second with the delay
-      if (abs(currDegrees) >= 0.7){  //Gyro readings hover below 0.7 dps at rest, don't take these values
-          totalDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
-      }
-      Serial.print("Degrees per Second: ");  //Print out the dps reading
-      Serial.println(GyXdps);
-      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
-      Serial.println(totalDegrees);  
+    while (abs(GyZ) >= COUNT_ROTATE_THRESHOLD){  //Only loop (count degrees) when the controller is moving 
+      float GyZdps = GyZ / FS_ZERO_GYRO_SCALE;   //Convert to degrees per second
+      float currDegrees = GyZdps * readDelay / 1000;  //Perform approximate integration by multiplying degree per second with the delay
+      totalDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
+      
+//      Serial.print("Degrees per Second: ");  //Print out the dps reading
+//      Serial.println(GyZdps);
+//      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
+//      Serial.println(totalDegrees);  
       delay(readDelay);    //Delay for the given duration inbetween reads
-  } 
+      readAll();
+  }
 }
 
 //Checks for a turn motion and sets motors to turn appropriately.
@@ -95,18 +97,18 @@ void checkTurnControl(){
 //Checks whether the controller is in a boundary zone, and make the robot turn accordingly. 
 void checkRotateControl(){
       //In the left boundary zone? Turn robot left while controller in left zone
-      if (totalDegrees >= LEFT_END_BOUNDARY || totalDegrees <= LEFT_START_BOUNDARY && state != left){
-        Serial.print("TURNING LEFT");
+      if (totalDegrees >= LEFT_START_BOUNDARY && totalDegrees <= LEFT_END_BOUNDARY && state != left){
+        Serial.println("L");
         state = left;
       }
       //In the center boundary zone? Center the robot while controller in center zone
-      else if (totalDegrees > LEFT_START_BOUNDARY || totalDegrees < RIGHT_START_BOUNDARY && state != center ){
-        Serial.print("CENTERED");
+      else if (totalDegrees > RIGHT_START_BOUNDARY && totalDegrees < LEFT_START_BOUNDARY && state != center ){
+        Serial.println("C");
         state = center; 
       }
       //In the right boundary zone? Turn robot right while controller in right zone. 
-      else if (totalDegrees >= RIGHT_START_BOUNDARY || totalDegrees <= RIGHT_END_BOUNDARY  && state != right){
-        Serial.print("TURNING RIGHT");
+      else if (totalDegrees >= RIGHT_END_BOUNDARY && totalDegrees <= RIGHT_START_BOUNDARY  && state != right){
+        Serial.println("R");
         state = right;
       }
 }
@@ -114,5 +116,6 @@ void checkRotateControl(){
 void loop(){
       countRotate();  //While the controller is moving, record total degrees that the controller turned
       checkRotateControl();  //Perform the appropriate action on the robot according to degrees turned
-      printAll();  //Print accellerometer/gyroscope reading values
+      //readAll();
+      //printAll();  //Print accellerometer/gyroscope reading values
 }
