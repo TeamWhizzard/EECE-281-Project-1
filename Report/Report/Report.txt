@@ -64,10 +64,19 @@ Steve figured out we could read the voltage across each motor from one of the pi
 Temperature and Humidity sensor
 decided to mount the temp/ humidity sensor to the board so we could factor in both humidity and temperature into our speed of sound calculations to increase the acccuracy of the distance calculations from the ultrasonic sensor.  Concluded that an excessive use of constants (ie heat capacities with limited accuracy would probably end up making little difference in the speed of sound calculation, 0.1 to 0.6% as read, or potentially worsen the results.  Went back to only using the room's temperature.  (For another reason, the blue sensor is a bit farther away from the board than the little lm35 guy would be therefore less likely to pick up heat from other components?)
 
+Controller:
+The controller would have an accelerometer and gyroscope attatched to it so that it could detect thrust and tilt and send
+a signal to the robot appropriately. For the bulk of our commands, which is turning, we decided to use the gyroscope 
+to determine the direction of our robot. Essentially, tilting the controller left, for example, will cause the robot to turn left as long
+as the left position is held. In order to maintain the state of our controller, we needed to keep track of the degrees
+of the controller. Wherever the controller is held at initialization, is where the center is defined (0 degrees). 
 
-
-
-
+One particular problem with obtaining degrees turned is the fact that the gyroscope, of course, returns data in degrees
+per second. To get degrees, the data must be integrated with respect to time. Since there is no function that 
+models random, real data, we use a form of approximate integration to obtain total degrees turned. By simply summing up
+(degrees per second * read delay duration), a close reading of degrees can reliably be achieved. We use this degrees value
+to determine whether the state is in the left, center or right boundary (i.e -20 to 20 degrees is defined as the center). 
+An interrupt signal would then be fired via bluetooth on our controller to the robot, and cause it to turn appropriately.
 
 
 Conclusions
