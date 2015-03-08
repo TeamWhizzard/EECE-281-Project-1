@@ -1,30 +1,147 @@
 #include <Wire.h>
+#include <LCD.h>
 #include <LiquidCrystal_I2C.h>
+
+#define I2C_ADDR    0x27 // <<----- Add your address here.  Find it from I2C Scanner
+#define BACKLIGHT_PIN     3
+#define En_pin  2
+#define Rw_pin  1
+#define Rs_pin  0
+#define D4_pin  4
+#define D5_pin  5
+#define D6_pin  6
+#define D7_pin  7
+
+int distanceLast; // keeps track of last moisture reading
+char block = 0xFF;
+float distanceCm = 0;
+// array of custom characters that are used to separate a block in the lcd into 5 segments
+byte slice[6][7] = {{B00000,B00000,B00000,B00000,B00000,B00000,B00000,}, {B10000,B10000,B10000,B10000,B10000,B10000,B10000,},
+                    {B11000,B11000,B11000,B11000,B11000,B11000,B11000,}, {B11100,B11100,B11100,B11100,B11100,B11100,B11100,},
+                    {B11110,B11110,B11110,B11110,B11110,B11110,B11110,}, {B11111,B11111,B11111,B11111,B11111,B11111,B11111,}};
 
 // set the LCD address to 0x20 for a 20 chars 4 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
 
-// slave address, columns (40?), rows
-LiquidCrystal_I2C lcd(0x20, 16, 2 LCD_5x8DOTS);//, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);  // Set the LCD I2C address
 
 void setup() {
-  // TODO 40, 2?
   lcd.begin(16,2);         // initialize the lcd for 20 chars 4 lines and turn on backlight
-  lcdDisplay();
+  Serial.begin(9600);
+  lcd.clear();
+  lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
+  lcd.setBacklight(HIGH);
+  lcd.createChar(0, slice[0]); // creates custom characters from the array
+  delay(10);
+  lcd.write(byte(0));
+  delay(100);
 }
 
+// distanceLive() - displays bar representation of most recent distance reading on bottom line of LCD display
+void distanceLive(int distanceNew){
+  // graphs values 13cm and less
+  if(distanceCm <= 13){
+    // we assume that when distanceCm equals zero, that the range is beyond 4meters (outside the range of the sensor)
+    if(distanceCm == 0){
+      // fill up graph on bottom of the LCD
+      lcd.setCursor(0,1);
+      for(int i = 0; i < 16; i++){
+        lcd.print((String) block);
+        delay(30);
+      }
+      distanceNew = 15;
+    }
+    // clear the bottom of the LCD
+    else if(distanceCm <= 3){
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      distanceNew = 0;
+    }
+    // depending on the value between 4 and 13 it fills in two blocks of the LCD using lines thus splitting two blocks into 10 segments
+    else if(distanceCm >= 4 && distanceCm <= 13){
+      int charVal = distanceCm - 3;
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      delay(20);
+      lcd.setCursor(0,1);
+      // 
+      if(charVal > 4){
+        lcd.print((String) block);
+        lcd.setCursor(1,1);
+        int charVal = charVal - 5;
+      }
+      lcd.createChar(0, slice[charVal]);
+    }
+  }
+  
+  // graphs values greater than 13cm
+  else{
+    // when distance increases, so then the graph increases
+    if(distanceNew > distanceLast) {
+      lcd.setCursor(0,1);
+      lcd.print((String) block);
+      for (int i = 0; i <= distanceNew; i++) {
+        lcd.print((String) block);
+        delay(30);
+      }
+    }
+    // when distance decreases, so then the graph decreases
+    else if(distanceNew < distanceLast) {
+      for (int i = distanceLast+1; i > distanceNew; i--) {
+        lcd.setCursor(i,1);
+        lcd.print(" ");
+        delay(30);
+      }
+    }
+  }
+  distanceLast = distanceNew;
+}
+
+// Displays the distance measurement on the top line of the LCD
 void lcdDisplay(){
   lcd.backlight();
-  
   lcd.setCursor(0,0);
-  lcd.print("Hello, Theresa!");
+  lcd.print("Distance: ");
+  distanceCm /= 100; // convert from centimeters to meters
   
-  lcd.setCursor(1,0);
-  lcd.print("Foreward");
+  // Displays "Oodles" when the distance recorded is zero since the range sensor is limited to 4 meters
+  if(distanceCm == 0){
+    lcd.print("      ");
+    lcd.setCursor(10,0);
+    lcd.print("Oodles");
+  }
   
+  // Displays the number value of the distance recorded
+  else{
+    lcd.setCursor(14,0);
+    lcd.print(" ");
+    lcd.setCursor(10,0);
+    lcd.print(distanceCm);
+    lcd.setCursor(15,0);
+    lcd.print("m");
+      
+  }
+  delay(500);
 }
 
+// Updates the LCD calling both the written and graphing functions lcdDisplay() and distanceLive() respectively
+void lcdRefresh(){
+  // controls blocks 2 to 7 on the lcd using a range from 14 to 100cm
+  if(distanceCm <= 100 && distanceCm >= 14){
+    distanceLive(distanceCm * 5 / 86 + (51/43)); // division will pass an int within range 0 to 7 based on tested distance thresholds
+  }
+  // controls blocks 8 to 15 on the lcd using a range from 101 to 400cm
+  else if(distanceCm > 100){
+    distanceLive(distanceCm * 7 / 299 + (1685/299)); // division will pass an int within range 8 to 16 based on tested distance thresholds
+  }
+  // deals with distance values less that 14cm, including zero
+  else{
+    distanceLive(0); // division will pass 0
+  }
+  lcdDisplay();
+  delay(100);
+}
 
 
 /*void collision(){
@@ -61,8 +178,28 @@ void lcdDisplay(){
   }
 }*/
 
-
-
+// testing loop changed to suite different needs
 void loop() {
-
+  distanceCm = 0;
+  lcdRefresh();
+  distanceCm = 1;
+  lcdRefresh();
+  distanceCm = 2;
+  lcdRefresh();
+  distanceCm = 3;
+  lcdRefresh();
+  distanceCm = 4;
+  lcdRefresh();
+  distanceCm = 5;
+  lcdRefresh();
+  distanceCm = 6;
+  lcdRefresh();
+  distanceCm = 7;
+  lcdRefresh();
+  distanceCm = 8;
+  lcdRefresh();
+  distanceCm = 9;
+  lcdRefresh();
+  distanceCm = 10;
+  lcdRefresh();
 }
