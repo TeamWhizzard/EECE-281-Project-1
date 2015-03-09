@@ -18,34 +18,51 @@ void setup() {
 }
 
 void loop() {
-    while (Serial.available() > 0) {
-     int rightMotor;
-     int leftMotor;
-     int rightEncoder;
-     int leftEncoder;
-     int music;
-     
-     rightMotor = Serial.parseInt();
-     leftMotor = Serial.parseInt();
-     rightEncoder = Serial.parseInt();
-     leftEncoder = Serial.parseInt();
-     music = Serial.parseInt();
-\
-     lcd.clear();
+  while (Serial.available() > 0) {
+    int rightMotor;
+    int leftMotor;
+    int rightEncoder;
+    int leftEncoder;
+    int music;
 
-     lcd.setCursor(0, 0);     
-     lcd.print("R: ");
-     lcd.setCursor(3, 0);
-     lcd.print(rightMotor);
-     lcd.setCursor(8, 0);
-     lcd.print(rightEncoder);
+    rightMotor = Serial.parseInt();
+    leftMotor = Serial.parseInt();
+    rightEncoder = Serial.parseInt();
+    leftEncoder = Serial.parseInt();
+    music = Serial.parseInt();
 
-     lcd.setCursor(0, 1);
-     lcd.print("L: ");
-     lcd.setCursor(3, 1);
-     lcd.print(leftMotor);
-     lcd.setCursor(8, 1);
-     lcd.print(leftEncoder);
+    int encoderDelta = leftEncoder - rightEncoder;
+    
+    lcdPrintMotorDebug(rightMotor, leftMotor, encoderDelta);
+  }
+
+  void lcdPrintMotorDebug(int right, int left, int encoder) {
+    lcd.clear();
+
+    lcd.leftToRight();
+    lcd.setCursor(0, 0);
+    lcd.print("Left ");
+    lcd.setCursor(8, 0);
+    lcd.print("Right ");
+
+    lcd.rightToLeft();
+    lcd.setCursor(3, 1);
+    lcd.print(left);
+
+    lcd.setCursor(11, 1);
+    lcd.print(right);
+
+    if (encoder != 0) {
+      if (encoder > 0) {
+        lcd.setCursor(6, 1);
+      } else {
+        lcd.setCursor(14, 1);
+      }
+      lcd.print(encoder);
+    } else { // motors are equal 
+        lcd.setCursor(6, 1);
+        lcd.print("   ");
+        lcd.setCursor(14, 1);
+        lcd.print("   ");
     }
-}
-
+  }
