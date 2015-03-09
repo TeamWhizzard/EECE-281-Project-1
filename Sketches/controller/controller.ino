@@ -66,7 +66,7 @@ void printAll(){
 //Counts the degrees rotated 
 void countRotate() {
     readAll();  //Update all accel/gyro values
-    time = millis();
+    float time = millis();
     while (abs(GyY) >= COUNT_ROTATE_THRESHOLD){  //Only loop (count degrees) when the controller is moving 
       checkRotateControl();
       //checkSpeedControl();
