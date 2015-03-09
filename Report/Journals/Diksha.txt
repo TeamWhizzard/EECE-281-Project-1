@@ -15,3 +15,11 @@
 4th Mar:
   1. Built the basic circuit for encoder with John using interrupt. This was to minimize the delay as much as possible. 
   2. Wrote some code for the same. 
+
+6th and 7th:
+Read on interrupts and encoders. Read the libraries, researched on rotary motor encoders. tried building the circuit for encoder using interruptts 
+but failed. 
+
+8th:
+Implemented the code. Unfortunately, read about the quadratures instead of dual encoders. But, was fnally able to write the code for retail encoder
+as John was working on encoder.
