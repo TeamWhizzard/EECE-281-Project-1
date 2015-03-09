@@ -90,7 +90,18 @@ per second. To get degrees, the data must be integrated with respect to time. Si
 models random, real data, we use a form of approximate integration to obtain total degrees turned. By simply summing up
 (degrees per second * read delay duration), a close reading of degrees can reliably be achieved. We use this degrees value
 to determine whether the state is in the left, center or right boundary (i.e -20 to 20 degrees is defined as the center). 
-An interrupt signal would then be fired via bluetooth on our controller to the robot, and cause it to turn appropriately.
+
+However, errors will begin to build up in the angle summation and eventually the center line will be misaligned. Using the 
+accelerometer to compute the angle as well was the solution to this. Using 3D trigonometry and the projection of the gravity 
+vector onto the axises, another angle of rotation is achieved. This one is reliable in the long term as opposed to the
+gyroscope integration requirements, since it recalculates its angle from acceleration each time rather than summing up previous
+measurements. 
+
+Combining both the gyroscope and accelerometer angle measurements into what's known as a complimentary filter essentially takes
+the best of both worlds. Although the measurements may not always record a perfect 90 when its physically tilted as such, the 
+fact that the angle readings are consistent independent of speed or time, makes this design choice the best method to record
+the angle of rotation. Ultimately, the design of our controller is very responsive, and is rather similar to the likes
+of a Wii-Mote. 
 
 Our theme for the project was Pacman, and since the robot is a ghost we wanted to stick to the theme and made the controller into Pacman himself.  Being a spherical shape, we decided mounting the hardware inside of a hamster ball would be the best option in terms of easily accessing the components and protecting the components.
 
