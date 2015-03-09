@@ -11,7 +11,7 @@ const int LEFT_START_BOUNDARY = -30;  //Start of degree boundary to indicate tur
 const int LEFT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning left 
 const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 const int RADIAN_TO_DEGREES = 180/PI;
-const int alpha = 0.87;  //Complimentary filter coefficient 
+const int alpha = 0.92;  //Complimentary filter coefficient 
 float totalDegrees, gyroDegrees, xTilt,yTilt, zTilt;  //Variables to keep track of filter, gyro, and accel angle measurements
 int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
 int AcXOffset = 0; int AcYOffset = 0; int AcZOffset = 1860;     //Offset to normalize accell readings to 0 (except AcZ -> gravity=16384)
@@ -78,10 +78,10 @@ void countRotate() {
       time = millis();  //Time the new duration right after initial sum calculated 
       gyroDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
       totalDegrees = calcFilterAngle(gyroDegrees, xTilt);  //Calculate the filter angle
-//      Serial.print("Degrees per Second: ");  //Print out the dps reading
-//      Serial.println(GyYdps);
-      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
-      Serial.println(totalDegrees);  
+      //Serial.print("Degrees per Second: ");  //Print out the dps reading
+      //Serial.println(GyYdps);
+      //Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
+      //Serial.println(totalDegrees);  
       readAll();
   }
 }
@@ -151,7 +151,7 @@ int calcFilterAngle(float gyroAngle, float acelAngle){
 }
 void loop(){
       countRotate();  //While the controller is moving, record total degrees that the controller turned
-      checkRotateControl();  //Perform the appropriate action on the robot according to degrees turned
+      //Perform the appropriate action on the robot according to degrees turned
       //readAll();
       //printAll();  //Print accellerometer/gyroscope reading values
       
