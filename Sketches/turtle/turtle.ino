@@ -84,7 +84,7 @@ void setup()
   for(int i = 0; i < 6; i++){
     lcd.createChar(i, slices[i]);
   }
-  recordTemp();
+  //recordTemp();
   delay(1000);
 }
 
@@ -311,7 +311,7 @@ void forward(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
   digitalWrite(MR,HIGH);  //right wheel moves forwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,HIGH);  //left wheel moves forwards
+  digitalWrite(ML,LOW);  //left wheel moves forwards, should be HIGH but reads value wrong
   stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 // move both motors backward
@@ -319,51 +319,53 @@ void backward(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
   digitalWrite(MR,LOW);  //right wheel moves backwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,LOW);  //left wheel moves backwards
+  digitalWrite(ML,HIGH);  //left wheel moves backwards, should be LOW but reads value wrong
   stringCreate(a, b, encoderRight, encoderLeft, music);
 }
-//turns left
-void turnLeft(char a,char b){
+//turns right
+//had to switch right and left turning due to board production issues
+void turnRight(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
   digitalWrite(MR,LOW);  //right wheel moves backwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,HIGH);  //left wheel moves forwards
+  digitalWrite(ML,LOW);  //left wheel moves forwards, should be HIGH but reads value wrong
   stringCreate(a, b, encoderRight, encoderLeft, music);
 }
-//turns Right
-void turnRight(char a,char b){
+//turns left
+//had to switch right and left turning due to board production issues
+void turnLeft(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
   digitalWrite(MR,HIGH);  //right wheel moves forwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,LOW);  //left wheel moves backwards
+  digitalWrite(ML,HIGH);  //left wheel moves backwards, should be LOW but reads value wrong
   stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 
 // turns the robot 90 degrees to the right
 void turn90Right(){
-  turnRight(50, 50);
-  delay(1000);
+  turnLeft(150, 150);
+  delay(300);
   brake();
 }
 
 // turns the robot 90 degrees to the left
 void turn90Left(){
-  turnLeft(50, 50);
-  delay(1000);
+  turnRight(150, 150);
+  delay(300);
   brake();
 }
 
 // turns the robot 180 degrees to the left
 void turn180Left(){
-  turnLeft(50, 50);
-  delay(2000);
+  turnRight(150, 150);
+  delay(750);
   brake();
 }
 
 // turns the robot 180 degrees to the right
 void turn180Right(){
-  turnRight(50, 50);
-  delay(2000);
+  turnLeft(150, 150);
+  delay(750);
   brake();
 }
 
@@ -386,22 +388,22 @@ void loop() {
   //motorControl(75, 7);
   //motorControl(25, 3);
   
-  forward(255, 255);
-  delay(3000);
+  forward(200, 200);
+  delay(2000);
   brake();
+  delay(500);
   backward(150, 150);
-  delay(3000);
+  delay(2000);
   brake();
-  turn90Right;
-  delay(3000);
-  brake();
-  turn180Left;
-  delay(3000);
-  brake();
+  delay(500);
+  turn90Right();
+  delay(500);
+  turn180Left();
+  delay(500);
 
   // applies the brakes when close enough to the wall
-  brake();
+  //brake();
   
-  turnControl();
+  //turnControl();
   delay(500);
 }
