@@ -45,13 +45,40 @@ Occasionally assisted Anthony with controller logic.
 
 Thursday, March 5
 -----------------
+(Day off for everyone)
 
 Friday, March 6
 ---------------
+Soldered prototype shield for controller
+Assisted with the creation of the LCD mount
+Assisted with the creation of the LCD display on the robot
 
 Saturday, March 7
 -----------------
-(One or two people should go to Dressew to get ghost model materials)
+Went with Theresa and we purchased fancy materials
+Programmed master bluetooth module and set bluetooth modules to auto-pair to each other on power-up.
+Cut controller ball in half
+Cut hole in controller ball for USB
+Mounted Arduino in controller ball
+Mounted LCD in controller ball
 
 Sunday, March 8
 ---------------
+Successfully transmitted wireless messages from the robot to the controller LCD
+Finally learned the software side of encoders (interrupts, etc).
+Wired up Romeo board, mounted LM35 Temperature Sensor.
+Reconnected Ultrasonic Rangefinder.
+Cable managed the entire bottom end of the robot. Tie-wrapped wires and channeled them through a cable holder.
+
+
+Monday, March 9
+---------------
+
+
+Tuesday, March 10
+-----------------
+
+
+Wednesday, March 11
+-------------------
+(panic mode enabled)
