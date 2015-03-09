@@ -21,36 +21,60 @@
 #define LEFT_MOTOR_CONTROL   7    // Left motor Direction Control
 #define LEFT_MOTOR_SPEED     6    // Left motor Speed Control
 
+int targetSpeed = 240;
+int rightSpeed = 240;
+int leftSpeed = 240;
+int correction = 2;
+
 long coder[2] = {0, 0};
 int lastSpeed[2] = {0, 0};
 
 void setup() {
   Serial.begin(9600);                            //init the Serial port to print the data
+  Serial.print("fuck this shit");
   for (int i = 4; i <= 7; i++) {                 // Motor Pin Assignments
     pinMode(i, OUTPUT);
   }
-  attachInterrupt(LEFT, LwheelSpeed, CHANGE);    //init the interrupt mode for the digital pin 2
-  attachInterrupt(RIGHT, RwheelSpeed, CHANGE);   //init the interrupt mode for the digital pin 3
+  attachInterrupt(LEFT, LwheelSpeed, RISING);    //init the interrupt mode for the digital pin 2
+  attachInterrupt(RIGHT, RwheelSpeed, RISING);   //init the interrupt mode for the digital pin 3
+  delay(100);
+  forward(leftSpeed, rightSpeed);
+  Serial.print("hello");
 }
 
 void loop() {
-
   static unsigned long timer = 0;                //print manager timer
-  forward(175, 175);
-  
-  if (millis() - timer > 100) {
-    Serial.print("Coder value: ");
-    Serial.print(coder[LEFT]);
-    Serial.print("[Left Wheel] ");
-    Serial.print(coder[RIGHT]);
-    Serial.println("[Right Wheel]");
 
-    lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
-    lastSpeed[RIGHT] = coder[RIGHT];
-    coder[LEFT] = 0;                 //clear the data buffer
-    coder[RIGHT] = 0;
-    timer = millis();
+  if (millis() - timer > 250) {
+    Serial.print("Left: ");
+    Serial.print(leftSpeed);
+    Serial.print("Right: ");
+    Serial.print(rightSpeed);
+    Serial.println("");
+
+    int coderDelta = coder[RIGHT] - coder[LEFT];
+    if (coderDelta != 0) {
+      if (coderDelta > 0) { // drifting left
+        if (rightSpeed < targetSpeed)
+          rightSpeed += coderDelta * correction;
+        else
+          rightSpeed -= coderDelta * correction;
+      } else { // drifting right
+        coderDelta = abs(coderDelta);
+        if (leftSpeed < targetSpeed)
+          leftSpeed += coderDelta * correction;
+        else
+          leftSpeed -= coderDelta * correction;
+      }
+    }
+    forward(leftSpeed, rightSpeed);
   }
+
+  lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
+  lastSpeed[RIGHT] = coder[RIGHT];
+  coder[LEFT] = 0;                 //clear the data buffer
+  coder[RIGHT] = 0;
+  timer = millis();
 }
 
 
