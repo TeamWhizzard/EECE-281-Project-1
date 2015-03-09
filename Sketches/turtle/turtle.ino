@@ -70,8 +70,9 @@ LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin)
 void setup()
 {
   Serial.begin(9600);
-  for(i=4;i<=7;i++)
-    pinMode(i, OUTPUT);  
+  for(int i = 4; i <= 7; i++){
+    pinMode(i, OUTPUT);
+  }
   pinMode(pinTrigFront, OUTPUT);
   pinMode(pinEchoFront, INPUT);
   pinMode(pinTemp, INPUT);
@@ -255,14 +256,14 @@ void lcdRefresh(){
 */
 void motorControl(int velocity, int threshold) {
   if (distanceCm == 0 || distanceCm >= threshold) {
-    forward(velocity+value, velocity); // different velocity values to help it go straight
-    stringCreate(velocity+value, velocity, encoderRight, encoderLeft, music);
+    forward(velocity, velocity);
+    //forward(velocity+value, velocity); // different velocity values to help it go straight
   }
   while (distanceCm == 0 || distanceCm >= threshold) {
     reportDistance();
     lcdRefresh();
   }
-  value *= 1.05; // scale value so that it affects the seperate speeds differently while slowing down
+  //value *= 1.05; // scale value so that it affects the seperate speeds differently while slowing down
 }
 
 /*
@@ -302,42 +303,45 @@ void turnControl(){
 
 // stops both motors
 void brake(){
-  digitalWrite(SR,LOW);  //brake left wheel
-  digitalWrite(SL,LOW);     
+  digitalWrite(SR,LOW);  //brake right wheel
+  digitalWrite(SL,LOW);  //brake left wheel
 }
 // moves both motors forward
 void forward(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
-  digitalWrite(MR,HIGH);   
+  digitalWrite(MR,HIGH);  //right wheel moves forwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,HIGH);
+  digitalWrite(ML,HIGH);  //left wheel moves forwards
+  stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 // move both motors backward
 void backward(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
-  digitalWrite(MR,LOW);  
+  digitalWrite(MR,LOW);  //right wheel moves backwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,LOW);
+  digitalWrite(ML,LOW);  //left wheel moves backwards
+  stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 //turns left
 void turnLeft(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
-  digitalWrite(MR,LOW);   
+  digitalWrite(MR,LOW);  //right wheel moves backwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,HIGH);
+  digitalWrite(ML,HIGH);  //left wheel moves forwards
+  stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 //turns Right
 void turnRight(char a,char b){
   analogWrite (SR,a);  //PWM Speed Control
-  digitalWrite(MR,HIGH);   
+  digitalWrite(MR,HIGH);  //right wheel moves forwards
   analogWrite (SL,b);  //PWM Speed Control
-  digitalWrite(ML,LOW);
+  digitalWrite(ML,LOW);  //left wheel moves backwards
+  stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 
 // turns the robot 90 degrees to the right
 void turn90Right(){
   turnRight(50, 50);
-  stringCreate(-100, 100, encoderRight, encoderLeft, music);
   delay(1000);
   brake();
 }
@@ -345,7 +349,6 @@ void turn90Right(){
 // turns the robot 90 degrees to the left
 void turn90Left(){
   turnLeft(50, 50);
-  stringCreate(100, -100, encoderRight, encoderLeft, music);
   delay(1000);
   brake();
 }
@@ -353,7 +356,6 @@ void turn90Left(){
 // turns the robot 180 degrees to the left
 void turn180Left(){
   turnLeft(50, 50);
-  stringCreate(100, -100, encoderRight, encoderLeft, music);
   delay(2000);
   brake();
 }
@@ -361,7 +363,6 @@ void turn180Left(){
 // turns the robot 180 degrees to the right
 void turn180Right(){
   turnRight(50, 50);
-  stringCreate(-100, 100, encoderRight, encoderLeft, music);
   delay(2000);
   brake();
 }
@@ -379,11 +380,24 @@ void loop() {
   value = MAGIC;
   
   // goes through 5 different speeds
-  motorControl(350, DISTANCE_THRESHOLD);
-  motorControl(275, 30);
-  motorControl(175, 20);
-  motorControl(100, 7);
-  motorControl(50, 3);
+  //motorControl(255, DISTANCE_THRESHOLD);
+  //motorControl(175, 30);
+  //motorControl(125, 20);
+  //motorControl(75, 7);
+  //motorControl(25, 3);
+  
+  forward(255, 255);
+  delay(3000);
+  brake();
+  backward(150, 150);
+  delay(3000);
+  brake();
+  turn90Right;
+  delay(3000);
+  brake();
+  turn180Left;
+  delay(3000);
+  brake();
 
   // applies the brakes when close enough to the wall
   brake();
