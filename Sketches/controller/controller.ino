@@ -2,8 +2,8 @@
 #include<Math.h>
 const int MPU=0x68;  // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
-const int FORWARD_THRESHOLD = 4000;   //Acceleration (scaled) threshold value to speed up
-const int SLOWDOWN_THRESHOLD = -4000;  //Accereration (scaled) threshold value to slow down
+const int FORWARD_THRESHOLD = -2500;   //Acceleration (scaled) threshold value to speed up
+const int SLOWDOWN_THRESHOLD = 2500;  //Accereration (scaled) threshold value to slow down
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
 const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
@@ -39,8 +39,8 @@ void readAll(){
       Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
       Wire.endTransmission(false);
       Wire.requestFrom(MPU,14,true);  // request a total of 14 registers
-      AcX=Wire.read()<<8|Wire.read() + AcXOffset;//+ AcXOffset;  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
-      AcY=Wire.read()<<8|Wire.read() + AcYOffset; //+ AcYOffset;  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+      AcX=Wire.read()<<8|Wire.read() + AcXOffset;  //  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
+      AcY=Wire.read()<<8|Wire.read() + AcYOffset;  // // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
       AcZ=Wire.read()<<8|Wire.read() + AcZOffset;  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
       Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
       GyX=Wire.read()<<8|Wire.read() + GyXOffset;  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
@@ -66,32 +66,35 @@ void printAll(){
 //Counts the degrees rotated 
 void countRotate() {
     readAll();  //Update all accel/gyro values
+    time = millis();
     while (abs(GyY) >= COUNT_ROTATE_THRESHOLD){  //Only loop (count degrees) when the controller is moving 
       checkRotateControl();
+      //checkSpeedControl();
       gyroDegrees = totalDegrees;   //Set gyro angle to last measured filter angle
       delay(readDelay);    //Delay for the given duration inbetween reads
-      float GyYdps = GyY / FS_ZERO_GYRO_SCALE;   //Convert to degrees per second
-      float currDegrees = GyYdps * (readDelay) / 1000;  //Perform approximate integration by multiplying degree per second with the delay
+      float GyYdps = GyY / FS_ZERO_GYRO_SCALE;   //Convert gyro measurement to degrees per second
+      processTilt(); //Acquire the degree angle from the accellerometer
+      float currDegrees = GyYdps * (millis()- time) / 1000;  //Perform approximate integration by multiplying degree per second with the delay
+      time = millis();  //Time the new duration right after initial sum calculated 
       gyroDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
-      processTilt();  //Acquire the degree angle from the accellerometer
       totalDegrees = calcFilterAngle(gyroDegrees, xTilt);  //Calculate the filter angle
 //      Serial.print("Degrees per Second: ");  //Print out the dps reading
 //      Serial.println(GyYdps);
-//      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
-//      Serial.println(totalDegrees);  
-      readAll(); //Update all accel/gyro values
+      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
+      Serial.println(totalDegrees);  
+      readAll();
   }
 }
 
 //Checks for a turn motion and sets motors to turn appropriately.
-void checkTurnControl(){
+void checkSpeedControl(){
   readAll();  //Update accell readings
-  if (AcY >= FORWARD_THRESHOLD){  //If acceleration is greater than the threshold, speed up
-    Serial.println("SPEEDING UP");
+  if (AcY <= FORWARD_THRESHOLD){  //If acceleration is greater than the threshold, speed up
+    Serial.println("A");
     delay(1500);
   }
-  else if (AcY <= SLOWDOWN_THRESHOLD){  //Else check if its lower than the threshold, slow down
-    Serial.println("SLOWING DOWN");
+  else if (AcY >= SLOWDOWN_THRESHOLD){  //Else check if its lower than the threshold, slow down
+    Serial.println("B");
     delay(1500);
   }
 }
@@ -133,7 +136,6 @@ void calibrateError(){
 
 }
 void processTilt(){
-  readAll();
   xTilt = atan2(AcX,sqrt(pow(AcY, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
   //yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
   //zTilt = atan2(sqrt(pow(AcX, 2)+ pow(AcY, 2)),AcZ) * RADIAN_TO_DEGREES;
@@ -141,7 +143,6 @@ void processTilt(){
 //  Serial.print(" | Y Tilt = "); Serial.print(yTilt);
 //  Serial.print(" | Z Tilt = "); Serial.println(zTilt);
 //  Serial.println("-----");
-  delay(readDelay);
   
 }
 
