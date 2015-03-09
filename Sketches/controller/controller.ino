@@ -12,13 +12,10 @@ const int LEFT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning
 const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 const int RADIAN_TO_DEGREES = 180/PI;
 const int alpha = 0.87;  //Complimentary filter coefficient 
-float totalDegrees = 0;  //Variable to keep track of total degrees turned, with the controller centered being 0 degrees
-float gyroDegrees = 0;   //Degrees as recorded by the gyro 
-float xTilt,yTilt, zTilt = 0;
-int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp; 
-int AcXOffset = 0; int AcYOffset = 0; int AcZOffset = 1860; 
-int GyXOffset = -110; int GyYOffset= -140; int GyZOffset= -54;  //Offset to normalize reading to 0 or G
-
+float totalDegrees, gyroDegrees, xTilt,yTilt, zTilt;  //Variables to keep track of filter, gyro, and accel angle measurements
+int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
+int AcXOffset = 0; int AcYOffset = 0; int AcZOffset = 1860;     //Offset to normalize accell readings to 0 (except AcZ -> gravity=16384)
+int GyXOffset = -110; int GyYOffset= -140; int GyZOffset= -54;  //Offset to normalize gyro readings to 0
 enum controlState {  //enumeration to cleanly maintain state of controller
   left,
   center,
@@ -34,7 +31,6 @@ void setup(){
       Wire.endTransmission(true);
       Serial.begin(9600);
       Serial.println("C");
-      
     }
 
 //Updates all acceleration and angular velocity readings
@@ -43,9 +39,9 @@ void readAll(){
       Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
       Wire.endTransmission(false);
       Wire.requestFrom(MPU,14,true);  // request a total of 14 registers
-      AcX=Wire.read()<<8|Wire.read(); //+ AcXOffset;  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
-      AcY=Wire.read()<<8|Wire.read(); //+ AcYOffset;  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-      AcZ=Wire.read()<<8|Wire.read() +AcZOffset;  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+      AcX=Wire.read()<<8|Wire.read() + AcXOffset;//+ AcXOffset;  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
+      AcY=Wire.read()<<8|Wire.read() + AcYOffset; //+ AcYOffset;  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+      AcZ=Wire.read()<<8|Wire.read() + AcZOffset;  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
       Tmp=Wire.read()<<8|Wire.read();  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
       GyX=Wire.read()<<8|Wire.read() + GyXOffset;  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
       GyY=Wire.read()<<8|Wire.read() + GyYOffset;  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
@@ -78,7 +74,7 @@ void countRotate() {
       float currDegrees = GyYdps * (readDelay) / 1000;  //Perform approximate integration by multiplying degree per second with the delay
       gyroDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
       processTilt();  //Acquire the degree angle from the accellerometer
-      calcFilterAngle(gyroDegrees, xTilt);  //Calculate the filter angle
+      totalDegrees = calcFilterAngle(gyroDegrees, xTilt);  //Calculate the filter angle
 //      Serial.print("Degrees per Second: ");  //Print out the dps reading
 //      Serial.println(GyYdps);
 //      Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
@@ -139,8 +135,8 @@ void calibrateError(){
 void processTilt(){
   readAll();
   xTilt = atan2(AcX,sqrt(pow(AcY, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
-  yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
-  zTilt = atan2(sqrt(pow(AcX, 2)+ pow(AcY, 2)),AcZ) * RADIAN_TO_DEGREES;
+  //yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
+  //zTilt = atan2(sqrt(pow(AcX, 2)+ pow(AcY, 2)),AcZ) * RADIAN_TO_DEGREES;
 //  Serial.print("X Tilt = "); Serial.print(xTilt);
 //  Serial.print(" | Y Tilt = "); Serial.print(yTilt);
 //  Serial.print(" | Z Tilt = "); Serial.println(zTilt);
@@ -149,8 +145,8 @@ void processTilt(){
   
 }
 
-void calcFilterAngle(float gyroAngle, float acelAngle){
-  totalDegrees = alpha * gyroAngle + (1 - alpha) * acelAngle;
+int calcFilterAngle(float gyroAngle, float acelAngle){
+  return alpha * gyroAngle + (1 - alpha) * acelAngle;
 }
 void loop(){
       countRotate();  //While the controller is moving, record total degrees that the controller turned
