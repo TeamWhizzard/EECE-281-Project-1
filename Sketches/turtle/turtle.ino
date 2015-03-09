@@ -37,7 +37,6 @@ float echoPulseFront; // time returned from ultrasonic sensor
 float velocity; // intermediate ultrasonic sensor calculation
 float time; // intermediate ultrasonic sensor calculation
 float distanceCm; // distance read by ultrasonic sensor
-int value; // used to help vary speeds on motors
 int distanceLast; // keeps track of last moisture reading
 char block = 0xFF; // block character used on lcd
 int music = 0; // assigned the values 0, 1, or 2 to play a song depending on the value
@@ -79,8 +78,6 @@ void setup()
   lcd.begin(16,2);         // initialize the lcd for 16 chars 2 lines and turn on backlight
   lcd.home();
   lcd.clear();
-  lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
-  lcd.setBacklight(HIGH);
   for(int i = 0; i < 6; i++){
     lcd.createChar(i, slices[i]);
   }
@@ -376,7 +373,7 @@ void turn180Right(){
  *------------------------------------------------------------------------------------------
 */
 void loop() {
-  reportDistance();
+  //reportDistance();
   
   // used to reset value to the magic number "MAGIC"
   value = MAGIC;
