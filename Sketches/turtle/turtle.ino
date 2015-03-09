@@ -1,12 +1,9 @@
-#include "DualVNH5019MotorShield.h"
 #include "NewPing.h"
-#include "DHT.h"
 #include "LCD.h"
 #include "LiquidCrystal_I2C.h"
 #include <math.h>
 #include <Wire.h>
 
-#define DHTTYPE DHT11
 #define I2C_ADDR  0x27 // <<----- Add your address here.  Find it from I2C Scanner
 #define BACKLIGHT_PIN  3
 #define En_pin  2
@@ -17,14 +14,17 @@
 #define D6_pin  6
 #define D7_pin  7
 
-DualVNH5019MotorShield motors;
+int MR = 4;    //Right motor Direction Control
+int SR = 5;    //Right motor Speed Control
+int SL = 6;    //Left motor Speed Control
+int ML = 7;    //Left motor Direction Control
 
 // ultrasonic and temperature sensors
 const int pinTrigFront = 3;
 const int pinEchoFront = A3;
 const int pinTemp = A2;
 
-const int MAX_DISTANCE = 300; // maximum reading distance of ultrasonic sensor in cm
+const int MAX_DISTANCE = 380; // maximum reading distance of ultrasonic sensor in cm
 const int DISTANCE_THRESHOLD = 50; // cm
 const int SPEED_MAX = 255; // PWM speed where 0 is brake, 255 is maximum
 const int MAGIC = 10; // magic number to control difference in left and right motor speed
@@ -33,7 +33,6 @@ const int INTRO_MUSIC = 1; // value that will be assigned to "music" to play int
 const int GAME_OVER_MUSIC = 2; // value that will be assigned to "music" to play game over song
 
 float temperature; // temperature value in C
-
 float echoPulseFront; // time returned from ultrasonic sensor
 float velocity; // intermediate ultrasonic sensor calculation
 float time; // intermediate ultrasonic sensor calculation
@@ -54,117 +53,70 @@ byte slices[6][8] = {{B00000,B00000,B00000,B00000,B00000,B00000,B00000,B00000},
                      {B11110,B11110,B11110,B11110,B11110,B11110,B11110,B11110},
                      {B11111,B11111,B11111,B11111,B11111,B11111,B11111,B11111}};
 
-/*
-// custom character that produces a blank block on the lcd
-byte lineZero[8] = {
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000
-};
-// custom character that produces a single line on the lcd
-byte lineOne[8] = {
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000
-};
-// custom character that produces a double line on the lcd
-byte lineTwo[8] = {
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000
-};
-// custom character that produces a triple line on the lcd
-byte lineThree[8] = {
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100
-};
-// custom character that produces a quadruple line on the lcd
-byte lineFour[8] = {
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110
-};
-// custom character that produces a full block on the lcd
-byte lineFive[8] = {
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111
-};
-*/
-
-DHT dht(pinTemp, DHTTYPE);
-
 NewPing sonar(pinTrigFront, pinEchoFront, MAX_DISTANCE); // initialize ultrasonic sensor
 
 // set the LCD address to 0x27 for a 16 chars 2 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
-
 LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);  // Set the LCD I2C address
 
+
+/*
+ *------------------------------------------------------------------------------------------
+ *Setup Function
+ *------------------------------------------------------------------------------------------
+*/
 
 void setup()
 {
   Serial.begin(9600);
-  motors.init();
+  for(i=4;i<=7;i++)
+    pinMode(i, OUTPUT);  
   pinMode(pinTrigFront, OUTPUT);
   pinMode(pinEchoFront, INPUT);
-  dht.begin();
+  pinMode(pinTemp, INPUT);
   lcd.begin(16,2);         // initialize the lcd for 16 chars 2 lines and turn on backlight
   lcd.home();
   lcd.clear();
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
   lcd.setBacklight(HIGH);
-  lcd.createChar(0, slices[0]);
-  lcd.createChar(1, slices[1]);
-  lcd.createChar(2, slices[2]);
-  lcd.createChar(3, slices[3]);
-  lcd.createChar(4, slices[4]);
-  lcd.createChar(5, slices[5]);
+  for(int i = 0; i < 6; i++){
+    lcd.createChar(i, slices[i]);
+  }
   recordTemp();
-  reportDistance();
   delay(1000);
 }
 
-void recordTemp() {
 
-  temperature = dht.readTemperature();
-  // distance = velocity * time where velocity is speed of sound
+/*
+ *------------------------------------------------------------------------------------------
+ *Measurements Functions
+ *------------------------------------------------------------------------------------------
+*/
+
+// records the temperature and calculates the speed of sound
+void recordTemp() {
+  int data = analogRead(pinTemp);
+  int temperature = (500*data) >> 10;
   velocity = (331.3 + (0.6 * temperature)); // speed of sound
 }
 
-// creates a string
+// records the distance to an obstruction
+void reportDistance() {
+  echoPulseFront = float(sonar.ping_median()); // returns time to and from object
+  time = (echoPulseFront) / 2; // divide by two because functions returns twice the time needed
+  distanceCm = (velocity * time) / 10000;
+}
+
+
+/*
+ *------------------------------------------------------------------------------------------
+ *Bluetooth Communication Functions
+ *------------------------------------------------------------------------------------------
+*/
+
+// creates a string out of individual motor speeds, encoder values and music selection value
+// to send to the controller via bluetooth
 void stringCreate(int speedRight, int speedLeft, int encoderRight, int encoderLeft, int music){
   String num1 = String(speedRight);
   String num2 = String(speedLeft);
@@ -181,12 +133,41 @@ void bluetoothData(String message){
   Serial.print(message); // prints message containing motor speeds and encoder values to the serial monitor
 }
 
+
+/*
+ *------------------------------------------------------------------------------------------
+ *LCD Control Functions
+ *------------------------------------------------------------------------------------------
+*/
+
 // clears a given line on the lcd
 void clearLine(int line){
   lcd.setCursor(0,line);
   lcd.print("                ");
   delay(20);
   lcd.setCursor(0,line);
+}
+
+// Displays the distance measurement on the top line of the LCD
+void lcdDisplay(){
+  lcd.setCursor(0,0);
+  lcd.print("Distance: ");
+  distanceCm /= 100; // convert from centimeters to meters
+  // Displays "Oodles" when the distance recorded is zero since the range sensor is limited to 4 meters
+  if(distanceCm == 0){
+    lcd.print("      ");
+    lcd.setCursor(10,0);
+    lcd.print("Oodles");
+  }
+  // Displays the number value of the distance recorded
+  else{
+    lcd.setCursor(14,0);
+    lcd.print(" ");
+    lcd.setCursor(10,0);
+    lcd.print(distanceCm);
+    lcd.setCursor(15,0);
+    lcd.print("m");
+  }
 }
 
 // distanceLive() - displays bar representation of most recent distance reading on bottom line of LCD display
@@ -220,7 +201,6 @@ void distanceLive(int distanceNew){
       lcd.write(byte(charVal));
     }
   }
-  
   // graphs values greater than 13cm
   else{
     // when distance increases, so then the graph increases
@@ -244,33 +224,6 @@ void distanceLive(int distanceNew){
   distanceLast = distanceNew;
 }
 
-// Displays the distance measurement on the top line of the LCD
-void lcdDisplay(){
-  lcd.backlight();
-  lcd.setCursor(0,0);
-  lcd.print("Distance: ");
-  distanceCm /= 100; // convert from centimeters to meters
-  
-  // Displays "Oodles" when the distance recorded is zero since the range sensor is limited to 4 meters
-  if(distanceCm == 0){
-    lcd.print("      ");
-    lcd.setCursor(10,0);
-    lcd.print("Oodles");
-  }
-  
-  // Displays the number value of the distance recorded
-  else{
-    lcd.setCursor(14,0);
-    lcd.print(" ");
-    lcd.setCursor(10,0);
-    lcd.print(distanceCm);
-    lcd.setCursor(15,0);
-    lcd.print("m");
-      
-  }
-  delay(500);
-}
-
 // Updates the LCD calling both the written and graphing functions lcdDisplay() and distanceLive() respectively
 void lcdRefresh(){
   // controls blocks 2 to 7 on the lcd using a range from 14 to 100cm
@@ -289,19 +242,20 @@ void lcdRefresh(){
   delay(100);
 }
 
-void reportDistance() {
-  echoPulseFront = float(sonar.ping_median()); // returns time to and from object
-  time = (echoPulseFront) / 2; // divide by two because functions returns twice the time needed
-  distanceCm = (velocity * time) / 10000;
-}
 
-/* 
-Controls the motors given a speed until a certain distance this version of motorControl()
-has both motors running at different speeds to help make the robot go straight
+/*
+ *------------------------------------------------------------------------------------------
+ *Motor Control Functions
+ *------------------------------------------------------------------------------------------
+*/
+
+/*
+ *Controls the motors given a speed until a certain distance this version of motorControl()
+ *has both motors running at different speeds to help make the robot go straight
 */
 void motorControl(int velocity, int threshold) {
   if (distanceCm == 0 || distanceCm >= threshold) {
-    motors.setSpeeds(velocity+value, velocity); // different velocity values to help it go straight
+    forward(velocity+value, velocity); // different velocity values to help it go straight
     stringCreate(velocity+value, velocity, encoderRight, encoderLeft, music);
   }
   while (distanceCm == 0 || distanceCm >= threshold) {
@@ -312,22 +266,22 @@ void motorControl(int velocity, int threshold) {
 }
 
 /*
-Controls the turning. Turns left and measures the distance to the left wall, then turns right and measures
-the distance to the right wall. If the distance to the right wall is over one meter or greater than the path
-to the left, the robot moves to the right wall. If not, then it turns back to the left and proceeds down the
-left path
-*/
+ *Controls the turning. Turns left and measures the distance to the left wall, then turns right and measures
+ *the distance to the right wall. If the distance to the right wall is over one meter or greater than the path
+ *to the left, the robot moves to the right wall. If not, then it turns back to the left and proceeds down the
+ *left path
+ */
 void turnControl(){
  while(distanceCm == 0 || distanceCm <= 5){
-    // turns left first and measures distance
+    // turns right first and measures distance
     reportDistance();
-    turnRight();
+    turn90Right();
     reportDistance();
     float pathRight = distanceCm;
     delay(500);
     
-    // then turns right and measures distance
-    turnAroundLeft();
+    // then turns left and measures distance
+    turn180Left();
     reportDistance();
     float pathLeft = distanceCm;
     delay(500);
@@ -340,44 +294,84 @@ void turnControl(){
       break;
     }
     else{
-      turnAroundRight();
+      turn180Right();
       break;
     }
   } 
 }
 
+// stops both motors
+void brake(){
+  digitalWrite(SR,LOW);  //brake left wheel
+  digitalWrite(SL,LOW);     
+}
+// moves both motors forward
+void forward(char a,char b){
+  analogWrite (SR,a);  //PWM Speed Control
+  digitalWrite(MR,HIGH);   
+  analogWrite (SL,b);  //PWM Speed Control
+  digitalWrite(ML,HIGH);
+}
+// move both motors backward
+void backward(char a,char b){
+  analogWrite (SR,a);  //PWM Speed Control
+  digitalWrite(MR,LOW);  
+  analogWrite (SL,b);  //PWM Speed Control
+  digitalWrite(ML,LOW);
+}
+//turns left
+void turnLeft(char a,char b){
+  analogWrite (SR,a);  //PWM Speed Control
+  digitalWrite(MR,LOW);   
+  analogWrite (SL,b);  //PWM Speed Control
+  digitalWrite(ML,HIGH);
+}
+//turns Right
+void turnRight(char a,char b){
+  analogWrite (SR,a);  //PWM Speed Control
+  digitalWrite(MR,HIGH);   
+  analogWrite (SL,b);  //PWM Speed Control
+  digitalWrite(ML,LOW);
+}
+
 // turns the robot 90 degrees to the right
-void turnRight(){
-  motors.setSpeeds(-100, 100);
+void turn90Right(){
+  turnRight(50, 50);
   stringCreate(-100, 100, encoderRight, encoderLeft, music);
   delay(1000);
-  motors.setBrakes(400, 400);
+  brake();
 }
 
 // turns the robot 90 degrees to the left
-void turnLeft(){
-  motors.setSpeeds(100, -100);
+void turn90Left(){
+  turnLeft(50, 50);
   stringCreate(100, -100, encoderRight, encoderLeft, music);
   delay(1000);
-  motors.setBrakes(400, 400);
+  brake();
 }
 
 // turns the robot 180 degrees to the left
-void turnAroundLeft(){
-  motors.setSpeeds(100, -100);
+void turn180Left(){
+  turnLeft(50, 50);
   stringCreate(100, -100, encoderRight, encoderLeft, music);
   delay(2000);
-  motors.setBrakes(400, 400);
+  brake();
 }
 
 // turns the robot 180 degrees to the right
-void turnAroundRight(){
-  motors.setSpeeds(-100, 100);
+void turn180Right(){
+  turnRight(50, 50);
   stringCreate(-100, 100, encoderRight, encoderLeft, music);
   delay(2000);
-  motors.setBrakes(400, 400);
+  brake();
 }
 
+
+/*
+ *------------------------------------------------------------------------------------------
+ *Main Loop Function
+ *------------------------------------------------------------------------------------------
+*/
 void loop() {
   reportDistance();
   
@@ -392,7 +386,7 @@ void loop() {
   motorControl(50, 3);
 
   // applies the brakes when close enough to the wall
-  motors.setBrakes(400, 400);
+  brake();
   
   turnControl();
   delay(500);
