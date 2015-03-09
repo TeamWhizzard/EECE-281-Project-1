@@ -4,7 +4,7 @@
 #include <math.h>
 #include <Wire.h>
 
-#define I2C_ADDR  0x27 // <<----- Add your address here.  Find it from I2C Scanner
+#define I2C_ADDR  0x27 // I2C Address for LCD Display
 #define BACKLIGHT_PIN  3
 #define En_pin  2
 #define Rw_pin  1
@@ -131,7 +131,6 @@ void bluetoothData(String message){
   Serial.print(message); // prints message containing motor speeds and encoder values to the serial monitor
 }
 
-
 /*
  *------------------------------------------------------------------------------------------
  *LCD Control Functions
@@ -254,13 +253,11 @@ void lcdRefresh(){
 void motorControl(int velocity, int threshold) {
   if (distanceCm == 0 || distanceCm >= threshold) {
     forward(velocity, velocity);
-    //forward(velocity+value, velocity); // different velocity values to help it go straight
   }
   while (distanceCm == 0 || distanceCm >= threshold) {
     reportDistance();
     lcdRefresh();
   }
-  //value *= 1.05; // scale value so that it affects the seperate speeds differently while slowing down
 }
 
 /*
@@ -341,31 +338,30 @@ void turnLeft(char a,char b){
 // turns the robot 90 degrees to the right
 void turn90Right(){
   turnLeft(150, 150);
-  delay(300);
+  delay(500);
   brake();
 }
 
 // turns the robot 90 degrees to the left
 void turn90Left(){
   turnRight(150, 150);
-  delay(300);
+  delay(500);
   brake();
 }
 
 // turns the robot 180 degrees to the left
 void turn180Left(){
   turnRight(150, 150);
-  delay(750);
+  delay(1000);
   brake();
 }
 
 // turns the robot 180 degrees to the right
 void turn180Right(){
   turnLeft(150, 150);
-  delay(750);
+  delay(1000);
   brake();
 }
-
 
 /*
  *------------------------------------------------------------------------------------------
@@ -375,10 +371,6 @@ void turn180Right(){
 void loop() {
   //reportDistance();
   
-  // used to reset value to the magic number "MAGIC"
-  value = MAGIC;
-  
-  // goes through 5 different speeds
   //motorControl(255, DISTANCE_THRESHOLD);
   //motorControl(175, 30);
   //motorControl(125, 20);
@@ -394,13 +386,12 @@ void loop() {
   brake();
   delay(500);
   turn90Right();
-  delay(500);
+  delay(1000);
   turn180Left();
-  delay(500);
+  delay(2000);
 
   // applies the brakes when close enough to the wall
   //brake();
   
   //turnControl();
-  delay(500);
 }
