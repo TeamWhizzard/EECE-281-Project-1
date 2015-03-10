@@ -1,7 +1,7 @@
 #include <LiquidCrystal.h>   //For LCD functionality
 #include <Wire.h>            //For Gyro/Accell functionality
 #include <Math.h>            //For calculating angles (arctan function)
-#incldue "WhizzardTone.h"    //For playing Pacman music
+#include "WhizzardTone.h"    //For playing Pacman music
 
 /*-----------------LCD Variables-------------------------
 */
@@ -127,8 +127,9 @@ const int pinPiezoBass = 6;
 */
 const int MPU=0x68;  // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
-const int FORWARD_THRESHOLD = -2500;   //Acceleration (scaled) threshold value to speed up
-const int SLOWDOWN_THRESHOLD = 2500;  //Accereration (scaled) threshold value to slow down
+const int FORWARD_THRESHOLD = -8600;   //Acceleration (scaled) threshold value to speed up
+const int BACKWARD_THRESHOLD = 10000;  //Accereration (scaled) threshold value to slow down
+const int STOP_THRESHOLD = 21000;
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
 const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
@@ -144,13 +145,18 @@ int GyXOffset = -110; int GyYOffset= -140; int GyZOffset= -54;  //Offset to norm
 int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
 
 //enumeration to cleanly maintain state of controller
-enum controlState {  
+enum controlTurnState{  
   left,
   center,
-  right
+  right,
 };
-controlState state = center;
-
+enum controlSpeedState{
+  forward,
+  back,
+  stopped
+};
+controlTurnState turnState = center;
+controlSpeedState speedState = forward;
 void setup(){
       Wire.begin();
       Wire.beginTransmission(MPU);
@@ -159,9 +165,11 @@ void setup(){
       Wire.endTransmission(true);
       lcd.begin(16, 2);
       Serial.begin(9600);
-      Serial.println("C");  
+      Serial.println("C"); 
+      Serial.println("F"); 
       treble.begin(pinPiezoTreble);
       bass.begin(pinPiezoBass);
+      playSong(songTheme);
     }
 
 // Pacman music!
@@ -221,8 +229,8 @@ void countRotate() {
     readAll();  //Update all accel/gyro values
     float time = millis();
     while (abs(GyY) >= COUNT_ROTATE_THRESHOLD){  //Only loop (count degrees) when the controller is moving 
-      checkRotateControl();
-      //checkSpeedControl();
+      checkTurnControl();
+      checkSpeedControl();
       gyroDegrees = totalDegrees;   //Set gyro angle to last measured filter angle
       delay(readDelay);    //Delay for the given duration inbetween reads
       float GyYdps = GyY / FS_ZERO_GYRO_SCALE;   //Convert gyro measurement to degrees per second
@@ -239,35 +247,37 @@ void countRotate() {
   }
 }
 
-//Checks for a turn motion and sets motors to turn appropriately.
 void checkSpeedControl(){
-  readAll();  //Update accell readings
-  if (AcY <= FORWARD_THRESHOLD){  //If acceleration is greater than the threshold, speed up
-    Serial.println("A");
-    delay(1500);
+  if (AcZ >= STOP_THRESHOLD && speedState != stopped){
+    Serial.println("S");
+    speedState = stopped; 
   }
-  else if (AcY >= SLOWDOWN_THRESHOLD){  //Else check if its lower than the threshold, slow down
-    Serial.println("B");
-    delay(1500);
+  if (AcY <= FORWARD_THRESHOLD && speedState != forward){
+    Serial.println("F");
+    speedState = forward;
   }
-}
+//  if (AcY >= BACKWARD_THRESHOLD && speedState != back){
+//    Serial.println("B");
+//    speedState = back; 
+//  }
 
-//Checks whether the controller is in a boundary zone, and make the robot turn accordingly. 
-void checkRotateControl(){
+}
+//Checks the motion control(accell or degree position) of the controller, and make the robot turn or move accordingly. 
+void checkTurnControl(){
       //In the left boundary zone? Turn robot left while controller in left zone
-      if (totalDegrees >= RIGHT_START_BOUNDARY && totalDegrees <= RIGHT_END_BOUNDARY && state != right){
+      if (totalDegrees >= RIGHT_START_BOUNDARY && totalDegrees <= RIGHT_END_BOUNDARY && turnState!= right){
         Serial.println("R");
-        state = right;
+        turnState= right;
       }
       //In the center boundary zone? Center the robot while controller in center zone
-      else if (totalDegrees > LEFT_START_BOUNDARY && totalDegrees < RIGHT_START_BOUNDARY && state != center ){
+      else if (totalDegrees > LEFT_START_BOUNDARY && totalDegrees < RIGHT_START_BOUNDARY && turnState!= center ){
         Serial.println("C");
-        state = center; 
+        turnState= center; 
       }
       //In the right boundary zone? Turn robot right while controller in right zone. 
-      else if (totalDegrees >= LEFT_END_BOUNDARY && totalDegrees <= LEFT_START_BOUNDARY  && state != left){
+      else if (totalDegrees >= LEFT_END_BOUNDARY && totalDegrees <= LEFT_START_BOUNDARY  && turnState!= left){
         Serial.println("L");
-        state = left;
+        turnState= left;
       }
 }
 
@@ -364,8 +374,10 @@ void lcdPrintMotorDebug(int right, int left, int encoder) {
 }
 void loop(){
       countRotate();  //While the controller is moving, record total degrees that the controller turned
-      parseSerialData(); //Parse the serial data passed to the controller and print onto LCD
+      parseSerialData(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
+      checkTurnControl();
+      checkSpeedControl();
       //readAll();
       //printAll();  //Print accellerometer/gyroscope reading values
-      
+      //delay(readDelay);
 }
