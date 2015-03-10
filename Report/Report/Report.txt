@@ -47,33 +47,31 @@ Also Include the list and description of the files submitted for this lab (inclu
 
 Project Description 
 --------------------------
-This section is the main part of your project report and should have sub-headings.
+(This section is the main part of your project report and should have sub-headings.
 Include summary of each part of and the complete lab experiment. Overview of the overall design approach including system block diagrams for both the hardware and software designs. 
 Explain the design, and implementation procedures. During the lab if you selected a method over the others for any step, describe the second best alternative you considered.
-Explain the evaluation/testing procedure and results. Include the problems you encounter and how to resolve them, as well as best practices you learned.
+Explain the evaluation/testing procedure and results. Include the problems you encounter and how to resolve them, as well as best practices you learned.)
 
 --Planning and Preliminary steps--
-This was our first project to use all six team members in collaboration.  Recognizing that this might present organizational challenges, we spent a large portion of our first meetup planning our robot's design, as well as a timeline for the project.
+This was the first project of the course to use all six team members in collaboration.  Recognizing that this might present organizational and design challenges, we spent a large portion of our first meetup in front of a whiteboard planning our robot's design, as well as a tentative timeline for the project.
 
-This was helpful to get the team thinking on the same page, however we learned so much about the Arduino and other components of the robot that many of our design decisions changed considerably from the initial design.
+The planning session was helpful to get the team thinking on a similar approach, however our final design is considerably different from the original sketch because of our limited Arduino and motor knowledge.
 
-One of the most effective strategies we came up with during this meeting was to keep a common pin map document on GitHub for each of our Arduinos.
+One of the most effective strategies we came up with during this meeting was to keep a common pin map document on GitHub for each Arduino, which was useful when the robot and controller were passed between team members.
 
---Motors--
-One of our priorities was to get the motors working, as we havn't worked with them before.
-Steve and John op-tested the motors, put 36V across one, found smoke! Turns out the motors are limited to 6V.
+--DFRobot Motor--
+Having not had much exposure to working with motors in 281, the group decided it would be best to prioritize getting that portion of the robot to work correctly, as well as conduct research on the Arduino Motor Shield.
 
-Another priority was getting to know the motor shield really well, studied the data sheets extensively.
-Steve figured out we could read the voltage across each motor from one of the pins on the motor shield chip, which we wanted to factor into speed calculations.  Pin broke off the chip and best up the board :( got a new shield with voltage sensing pins already built in.
+We connected the motors up to a voltage source to test its limitations.  After reaching about 36 V, the motor began to smoke!  It was later discovered that the motor was infact limited to a 6V power source.
+
+Besides an increased knowledge of functionality, studying the datasheet of the (chip name) used to control the Arduino motor shield proved useful in that we discovered two pins that could provide us with current readings across each connected motor.  We reasoned that if sensitive enough, this information could be used to corrent any current spikes or discrepencies on the motors that were causing the robot not to drive straight.  This pin however was not one that was already wired up to an Arduino pin.  We tried to unsolder the pins and connect them to jumper cables to be accessed by digital Arudino pins, however the chip's pin broke in the process, and was unrecoverable.  Unfortunatly for us, that particular pin needed to be grounded for the motor to work properly.
+
+We ended up purchasing a Pololu motor shield that is compatible with the Arduino uno as a replacement, since there were no other replacement parts available in Vancouver.  The Pololu shield is more powerful than the previous Arduino shield.  (Elaborate on additional differences of the shields)  One of its additional features was that the motor current pins were already wired.  Once we were able to test this feature however, we concluded that it was not sensitive enough to be used for anything other than detecting current spikes if the robot crashed.
 
 --Power Supply--
-Another priority was figuring out the best way to power the robot.
+Another priority was figuring out the best way to power the robot.  We decided to use only one power supply to power the motors and robot Arduino.  It is a common practice in such applications to use seperate power sources for motor and microcontroller to eliminate extraneous motor noise that could effect the microcontroller's functionality.  We rationalized that this was unnecessary because the Arduino Uno has a built-in device to reduce noise from an incomming power supply.  To further reduce motor nosie, we connected (size) capacitors in parallel with each motor as suggested in Pololu motor shield tutorials.
 
-Decided to use one power source to power both the arduino board and the motors instead of two.  The arduino has built in device for reducing noise generated by the batteries.  We also added small capacitors parallel to the batteries to help with this.
-After initially assembling the robot, threw the switch and quickly found smoke! Shut it off, had a bit of a panic, fearing we blew a motor, found out the power switch was wired wrong and was shorting the batteries.  Battery pack was fried.
-
-Eventually we decided to use two power supplies instead..
-Talk about noise from the motors and putting on capacitors.
+Upon testing our original power supply setup, we found smoke coming our of the batteries!  We quickly shut off the power switch and after consulting a lab TA, realized we had connected the power switch up wrong and were short circuiting the batteries.  The recharchable batteries survived, but the battery pack was fried.
 
 --Connectivity--
 Bluetooth communiation was more difficult than first anticipated. The process would require two bluetooth modules-- a master and slave module. The Arudino TX/RX pin connects to the reversed RX/TX pin of the bluetooth module. This is because the Arduino is receiving the data sent by the bluetooth module and vice versa. So overall connectivity seemed simple enough. It wasn't.
@@ -82,46 +80,37 @@ First, the bluetooth RX pin can only accept 3.3V and Arduino pins output 5V, so 
 
 Our adventures in Bluetooth connectivity did not end there. A one time event to program the master bluetooth module was required so it would only connect, and automatically connect, to the slave module. It required setting the master module into command mode to be programmed. Further complicating matters, this pin was not soldered. So we soldered a wire from the breakout board to 3.3V. On power up, setting that pin high sets the master into command mode. In command mode we sent the required AT commands to the master module. The commands set permanent memory to point to the address of the slave module. Thus, on power up, the master module would only seek out the slave and connect to it automatically.
 
-
 --Controller--
 As a second functionality, we decided to build a remote controller for the robot.
 
-The controller would have an accelerometer and gyroscope attatched to it so that it could detect thrust and tilt and send
-a signal to the robot appropriately. For the bulk of our commands, which is turning, we decided to use the gyroscope 
-to determine the direction of our robot. Essentially, tilting the controller left, for example, will cause the robot to turn left as long
-as the left position is held. In order to maintain the state of our controller, we needed to keep track of the degrees
-of the controller. Wherever the controller is held at initialization, is where the center is defined (0 degrees). 
+The controller would have an accelerometer and gyroscope mounted on an Arduino Uno so that it could detect thrust and tilt and send a signal to the robot appropriately. For the bulk of our commands, which is turning, we decided to use the gyroscope to determine the direction of the robot. Tilting the controller left, for example, will cause the robot to turn left for as long as the left position is held. In order to maintain the state of our controller, we needed to keep track of the degrees in which the controller turned. Zero degrees is calibrated to the position of the gyroscope on setup.
 
-One particular problem with obtaining degrees turned is the fact that the gyroscope, of course, returns data in degrees
-per second. To get degrees, the data must be integrated with respect to time. Since there is no function that 
-models random, real data, we use a form of approximate integration to obtain total degrees turned. By simply summing up
-(degrees per second * read delay duration), a close reading of degrees can reliably be achieved. We use this degrees value
-to determine whether the state is in the left, center or right boundary (i.e -20 to 20 degrees is defined as the center). 
+One particular problem with obtaining degrees turned was that the gyroscope returns data in degrees per second. To calculate degrees, the data must be integrated with respect to time. Since there is no function that models random, real data, we use a form of approximate integration to obtain total degrees turned. By simply summing up (degrees per second * read delay duration), a close reading of degrees can reliably be achieved. We use this degrees value to determine whether the state is in the left, center or right boundary (i.e -20 to 20 degrees is defined as the center). 
 
-However, errors will begin to build up in the angle summation and eventually the center line will be misaligned. Using the 
-accelerometer to compute the angle as well was the solution to this. Using 3D trigonometry and the projection of the gravity 
-vector onto the axises, another angle of rotation is achieved. This one is reliable in the long term as opposed to the
-gyroscope integration requirements, since it recalculates its angle from acceleration each time rather than summing up previous
-measurements. 
+However, errors began to build up in the angle summation and eventually cause the center line to be misaligned. Using the accelerometer to compute the angle in addition to the gyroscope solved this problem. Using 3D trigonometry and the projection of the gravity vector onto the axises, another angle of rotation is achieved. This angle is reliable in the long term as opposed to the gyroscope integration requirements, since its angle is continuously recalculated from acceleration rather than summing up previous measurements. 
 
-Combining both the gyroscope and accelerometer angle measurements into what's known as a complimentary filter essentially takes
-the best of both worlds. Although the measurements may not always record a perfect 90 when its physically tilted as such, the 
-fact that the angle readings are consistent independent of speed or time, makes this design choice the best method to record
-the angle of rotation. Ultimately, the design of our controller is very responsive, and is rather similar to the likes
-of a Wii-Mote. 
+Combining both the gyroscope and accelerometer angle measurements into what's known as a complimentary filter essentially takes the best of both worlds. Although the measurements may not always record a perfect 90 when its physically tilted as such, the fact that the angle readings are consistent independent of speed or time, makes this design choice the best method to record the angle of rotation. Ultimately, the design of our controller is very responsive, and is rather similar to the likes
+of a Wii-Mote.
 
-Our theme for the project was Pacman, and since the robot is a ghost we wanted to stick to the theme and made the controller into Pacman himself.  Being a spherical shape, we decided mounting the hardware inside of a hamster ball would be the best option in terms of easily accessing the components and protecting the components.
+Our overall theme for the project was Pacman, and since the robot is modelled after a ghost we made the controller into Pacman himself.  Being a spherical shape, we decided that mounting the hardware inside of a hamster ball would be the best option in terms of component accessability as well as protection.
 
-The first step was to mount the ball in half with an exacto knife.
-We fixed the metal sensor mount that came with the robot kit inside the ball.  The arduino was screwed on facing towards the center.  The battery is on the other side of the sensor mount and positioned in such a way that the hamster port can be unscrewed for easy access to take out the battery.  One issue we ran into was not having enough room to fit the usb cable in for uploading/ testing code.  We fixed this by cutting a whole in the side of the ball.
+The first step was to split the ball in half with an exacto knife.  We fixed the metal sensor mount that came with the robot kit inside the ball as a shelf.  The arduino was screwed onto the shelf in such a way that the accelerometer/ gyroscope was as close to center as possible.  The battery is on the other side of the sensor mount and positioned in such a way that the hamster port can be unscrewed for easy access to take out the battery.  One issue we ran into was not having enough room to fit the usb cable in for uploading/ testing code.  We fixed this by cutting a whole in the side of the ball.
+
 To make sure there were as few controller parts as possible, all our components are neatly soldered on to the arduino prototyping shield including bluetooth master, piezo buzzers, voltage divider for lcd, accelerometer/ gyroscope..
 
 
-We mounted the LCD display on the upper half of the hamster ball.  since the ball is see through it is easy to see what is displayed with the backlight on.  We decided against cutting a hole for it so the LCD screen would be better protected from drops.  Also combined lcd wires to combine common grounds to make for less of a hassle of wires inside the controller.
+We mounted the LCD display on the upper half of the hamster ball.  Soldered volage devider on Arduino prototype shield.  since the ball is see through it is easy to see what is displayed with the backlight on.  We decided against cutting a hole for it so the LCD screen would be better protected from drops.  Also combined lcd wires to combine common grounds to make for less of a hassle of wires inside the controller.
 
 --Encoder--
 About a week into the process, we realized the car wouldnt go straight because of motor discrepencies.  Tried to use a magic number but the problem wasnt consistent (include picture of testing).  Decided the best solution would be to build an encoder.
 more about encoders..
+
+(john talk about building encoders)
+
+We bought pre-made DFrobot encoders to model off of/ test/ just in case and ended up installing them on the robot and using them for stuff..
+(discuss coding with interupts ect)
+
+One of our team members bought arudino romeo for fun.  Because the pololu shielf was using one of two interrupt pins on the arduino uno, we decided to use the romeo on our board instead
 
 --Additional Functionalities and Considerations--
 -Double Arduino-
@@ -134,7 +123,7 @@ One of the ways we decreased pin usage was finding an adapter that reduced the 8
 decided to mount the temp/ humidity sensor to the board so we could factor in both humidity and temperature into our speed of sound calculations to increase the acccuracy of the distance calculations from the ultrasonic sensor.  Concluded that an excessive use of constants (ie heat capacities with limited accuracy would probably end up making little difference in the speed of sound calculation, 0.1 to 0.6% as read, or potentially worsen the results.  Went back to only using the room's temperature.  (For another reason, the blue sensor is a bit farther away from the board than the little lm35 guy would be therefore less likely to pick up heat from other components?)
 
 -double piezo buzzers-
-To go along with the theme we wanted use two piezo buzzers to play an elaborate pacman theme song (bass/ melody line).  Figured out the standard Arduino tone library uses PWM Timer1 exclusively.  It changes square wave frequencies by directly changing the frequency of the timer, and could therefore not play two at once.  Decided to change frequencies ourselves.. considerations about not putting it on robot for interfering with motors.
+To go along with the theme we wanted use two piezo buzzers to play an elaborate pacman theme song (bass/ melody line).  Figured out the standard Arduino tone library uses PWM Timer1 exclusively.  It changes square wave frequencies by directly changing the frequency of the timer, and could therefore not play two at once.  Decided to change frequencies ourselves.. considerations about not putting it on robot for interfering with motors, therefore mounted piezo buzzers on controller.  Giant Arduino Tone library makes use of a c++ structure to manage plaing multiple tones at once.  The sheet music found (include in references) smallest note with 32nd note.  From lab 2(?) found that the onsets of the notes were heard more clearly with slight pauses between notes therefore there is a sixtyfourth pause between each note change.. to make the melody/ bass play in synch I broke it up into two arrays in such a way that they would go in synch..
 
 -collision sensor-
 Decided to use a collision sensor to detect if the robot ran into anything.  Justified this decision becasue of ultrasonic interference during lab time.  Got collision sensor component that reads high when triggered, has a built in potentiometer to adjust the trigger threshold.  After writing code to test and mounting to the arduino we discovered that the sensor was too sensitive for our purposes as it was triggered on the acceleration/ deceleration of the wheels. Considered using current spikes read from the motor shield as indication of collisions.
