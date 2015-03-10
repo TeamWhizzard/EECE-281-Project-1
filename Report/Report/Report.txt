@@ -1,4 +1,4 @@
-EECE 281 Section 202
+﻿EECE 281 Section 202
 Project 1
 Lab section: L2D
 Group #: L2D_7A, L2D_7B
@@ -75,6 +75,13 @@ After initially assembling the robot, threw the switch and quickly found smoke! 
 Eventually we decided to use two power supplies instead..
 Talk about noise from the motors and putting on capacitors.
 
+--Connectivity--
+Bluetooth communiation was more difficult than first anticipated. The process would require two bluetooth modules-- a master and slave module. The Arudino TX/RX pin connects to the reversed RX/TX pin of the bluetooth module. This is because the Arduino is receiving the data sent by the bluetooth module and vice versa. So overall connectivity seemed simple enough. It wasn't.
+
+First, the bluetooth RX pin can only accept 3.3V and Arduino pins output 5V, so a voltage divider was required. Uploading to the Arduino requires pins 0 and 1 not be connected on upload as these pins are shared with USB. To simplify these restrictions, the best solution was to use the prototype shields in our kit. We would then install pin headers and voltage dividers onto the shield. This solution allowed us to quickly connect/disconnect the module when uploading new code or testing that code.
+
+Our adventures in Bluetooth connectivity did not end there. A one time event to program the master bluetooth module was required so it would only connect, and automatically connect, to the slave module. It required setting the master module into command mode to be programmed. Further complicating matters, this pin was not soldered. So we soldered a wire from the breakout board to 3.3V. On power up, setting that pin high sets the master into command mode. In command mode we sent the required AT commands to the master module. The commands set permanent memory to point to the address of the slave module. Thus, on power up, the master module would only seek out the slave and connect to it automatically.
+
 
 --Controller--
 As a second functionality, we decided to build a remote controller for the robot.
@@ -131,6 +138,12 @@ To go along with the theme we wanted use two piezo buzzers to play an elaborate 
 
 -collision sensor-
 Decided to use a collision sensor to detect if the robot ran into anything.  Justified this decision becasue of ultrasonic interference during lab time.  Got collision sensor component that reads high when triggered, has a built in potentiometer to adjust the trigger threshold.  After writing code to test and mounting to the arduino we discovered that the sensor was too sensitive for our purposes as it was triggered on the acceleration/ deceleration of the wheels. Considered using current spikes read from the motor shield as indication of collisions.
+
+--miscellaneous design decisions--
+Many smaller design decisions were made that when considered as a whole, made a noticible difference. For exampke, we used rechargeable NiMH batteries. NiMH batteries have a much longer lifespan than Alkaline batteries*. It saved the group money and a consistent amp-hour rating over Alakaline which contributed to a stable design.
+
+We also practised clean cable management. We use tie-wraps where needed and installed a cable clip to the ceiling above the motors. This pulled the cables away from our encoders and gave us a more professional looking robot. For our temperature sensor we opted to use the separate breakout board for the LM35 versus the breadboard version. This ensured any heat from other components did not affect its reading.
+
 
 Conclusions
 -----------------
