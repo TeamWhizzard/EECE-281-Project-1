@@ -5,7 +5,7 @@
 #include <Wire.h>
 #include "DualVNH5019MotorShield.h"
 
-int autonomous = 1; // default robot mode
+int autonomous = 0; // default robot mode
 
 // Controller serial commands
 const char LEFT = 'L';
@@ -30,17 +30,11 @@ const char BACKUP = 'B';
 #define D7_PIN  7
 #define BLOCK   0xFF // block character code
 
-// Motors
-#define DIRECTION_CONTROL_M1  4    // Right motor Direction Control
-#define RIGHT_MOTOR_SPEED     5    // Right motor Speed Control
-#define DIRECTION_CONTROL_M2  7    // Left motor Direction Control
-#define LEFT_MOTOR_SPEED      6    // Left motor Speed Control
-
 // Sensor Inputs
 #include "NewPing.h"
 #define RANGEFINDER_TRIGGER_PIN  8
-const int RANGEFINDER_ECHO_PIN = A3;
-const int TEMPERATURE_PIN = A2;
+#define RANGEFINDER_ECHO_PIN A3
+#define TEMPERATURE_PIN A2
 
 // General Constants
 #define MAX_DISTANCE       380 // maximum reading distance of ultrasonic sensor in cm
@@ -266,44 +260,31 @@ void lcdRefresh() {
  *------------------------------------------------------------------------------------------
 */
 
-//sets the speeds of each motor
-//void setSpeeds(char left, char right) {
-//  analogWrite (RIGHT_MOTOR_SPEED, right * 51 / 80);  //PWM Speed Control
-//  analogWrite (LEFT_MOTOR_SPEED, left * 51 / 80);  //PWM Speed Control
-//}
 // stops both motors
 void brake() {
-//  digitalWrite(DIRECTION_CONTROL_M1, LOW); //brake right wheel
-//  digitalWrite(DIRECTION_CONTROL_M2, LOW); //brake left wheel
   motor.setBrakes(400, 400);
 }
+
 // moves both motors forward
 void forward(int left, int right) {
-  //digitalWrite(DIRECTION_CONTROL_M1, HIGH); //right wheel moves forwards
-  //digitalWrite(DIRECTION_CONTROL_M2, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
   motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
+
 // move both motors backward
 void backward(int left, int right) {
-  //digitalWrite(DIRECTION_CONTROL_M1, LOW); //right wheel moves backwards
-  //digitalWrite(DIRECTION_CONTROL_M2, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
   motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
+
 //turns right
-//had to switch right and left turning due to board production issues
 void turnRight(int left, int right) {
-  //digitalWrite(DIRECTION_CONTROL_M1, LOW); //right wheel moves backwards
-  //digitalWrite(DIRECTION_CONTROL_M2, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
   motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
+
 //turns left
-//had to switch right and left turning due to board production issues
 void turnLeft(int left, int right) {
-  //digitalWrite(DIRECTION_CONTROL_M1, HIGH); //right wheel moves forwards
-  //digitalWrite(DIRECTION_CONTROL_M2, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
   motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
@@ -311,11 +292,11 @@ void turnLeft(int left, int right) {
 // turns the robot 90 degrees to the left
 void turn90Left() {
   turnRight(150, 150);
-  //setSpeeds(150, 150);
   delay(1000);
   brake();
 }
 
+// Calculate the speed to travel based on distance from object.
 char calculatedApproach() {
   reportDistance();
   char calculatedSpeed = MAX_SPEED;
@@ -328,6 +309,7 @@ char calculatedApproach() {
   return calculatedSpeed;
 }
 
+// Controller driving logic interpreter
 void manualDrivingMode(char heading) {
   if (heading == LEFT)
     turnLeft(MANUAL_SPEED, MANUAL_SPEED);
@@ -335,10 +317,8 @@ void manualDrivingMode(char heading) {
     turnRight(MANUAL_SPEED, MANUAL_SPEED);
   else if (heading == CENTRE)
     forward(MANUAL_SPEED, MANUAL_SPEED);
-  else if (heading == FORWARD) {
+  else if (heading == FORWARD)
     forward(MANUAL_SPEED, MANUAL_SPEED);
-    //setSpeeds(MANUAL_SPEED, MANUAL_SPEED);
-  }
   else if (heading == STOP)
     brake();
   else if (heading == BACKUP)
@@ -352,23 +332,11 @@ void manualDrivingMode(char heading) {
 */
 void loop() {
   if (autonomous) {
-    //    forward();
-    //    setSpeeds(350, 350);
-    //    delay(2000);
-    //    setSpeeds(300, 300);
-    //    delay(2000);
-    //    setSpeeds(250, 250);
-    //    delay(2000);
-    //    setSpeeds(150, 150);
-    //    delay(2000);
-    //    setSpeeds(75, 75);
-    //    delay(2000);
     char newSpeed = calculatedApproach();
     lcdRefresh();
     if (newSpeed == 0) { // at wall, need to turn left
       brake();
       turn90Left();
-      //forward();
       newSpeed = calculatedApproach(); // proceed after turn
     }
     forward(newSpeed, newSpeed);
@@ -379,3 +347,4 @@ void loop() {
     }
   }
 }
+
