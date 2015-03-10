@@ -29,9 +29,12 @@ int correction = 2;
 long coder[2] = {0, 0};
 int lastSpeed[2] = {0, 0};
 
+static unsigned long timer = 0;                //print manager timer
+
 void setup() {
+  delay(100);
   Serial.begin(9600);                            //init the Serial port to print the data
-  Serial.print("fuck this shit");
+  
   for (int i = 4; i <= 7; i++) {                 // Motor Pin Assignments
     pinMode(i, OUTPUT);
   }
@@ -39,42 +42,44 @@ void setup() {
   attachInterrupt(RIGHT, RwheelSpeed, RISING);   //init the interrupt mode for the digital pin 3
   delay(100);
   forward(leftSpeed, rightSpeed);
-  Serial.print("hello");
 }
 
 void loop() {
-  static unsigned long timer = 0;                //print manager timer
-
-  if (millis() - timer > 250) {
+  if (millis() - timer > 500) {
     Serial.print("Left: ");
     Serial.print(leftSpeed);
+    Serial.print(" ");
+    Serial.print(coder[RIGHT]);
     Serial.print("Right: ");
     Serial.print(rightSpeed);
+    Serial.print(" ");
+    Serial.print(coder[LEFT]);
     Serial.println("");
 
     int coderDelta = coder[RIGHT] - coder[LEFT];
-    if (coderDelta != 0) {
-      if (coderDelta > 0) { // drifting left
-        if (rightSpeed < targetSpeed)
-          rightSpeed += coderDelta * correction;
-        else
-          rightSpeed -= coderDelta * correction;
-      } else { // drifting right
-        coderDelta = abs(coderDelta);
-        if (leftSpeed < targetSpeed)
-          leftSpeed += coderDelta * correction;
-        else
-          leftSpeed -= coderDelta * correction;
-      }
-    }
-    forward(leftSpeed, rightSpeed);
-  }
+    if (coderDelta > 0) { // drifting left
+      if (rightSpeed < targetSpeed)
+        rightSpeed += coderDelta * correction;
+      else
+        rightSpeed -= coderDelta * correction;
+    } else if (coderDelta < 0) { // drifting right
+      coderDelta = abs(coderDelta);
+      if (leftSpeed < targetSpeed)
+        leftSpeed += coderDelta * correction;
+      else
+        leftSpeed -= coderDelta * correction;
+    } else { // car is driving straight
+      leftSpeed = targetSpeed;
+      rightSpeed = targetSpeed;
+    } 
+   forward(leftSpeed, rightSpeed);
 
-  lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
-  lastSpeed[RIGHT] = coder[RIGHT];
-  coder[LEFT] = 0;                 //clear the data buffer
-  coder[RIGHT] = 0;
-  timer = millis();
+    lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
+    lastSpeed[RIGHT] = coder[RIGHT];
+    coder[LEFT] = 0;                 //clear the data buffer
+    coder[RIGHT] = 0;
+    timer = millis();
+  }
 }
 
 
