@@ -13,8 +13,8 @@ double kp = 2;
 double ki = 2;
 double kd = 0;
 
-volatile double coderLeft = 0;
-volatile double coderRight = 0;
+long coderLeft = 0;
+long coderRight = 0;
 
 DualVNH5019MotorShield motor;
 
