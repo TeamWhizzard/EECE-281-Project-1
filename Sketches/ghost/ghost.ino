@@ -31,22 +31,23 @@ const char BACKUP = 'B';
 
 // Motors
 #define DIRECTION_CONTROL_M1  4    // Right motor Direction Control
-#define RIGHT_MOTOR_SPEED    5    // Right motor Speed Control
-#define DIRECTION_CONTROL_M2   7    // Left motor Direction Control
-#define LEFT_MOTOR_SPEED     6    // Left motor Speed Control
+#define RIGHT_MOTOR_SPEED     5    // Right motor Speed Control
+#define DIRECTION_CONTROL_M2  7    // Left motor Direction Control
+#define LEFT_MOTOR_SPEED      6    // Left motor Speed Control
 
 // Sensor Inputs
 #include "NewPing.h"
-#define RANGEFINDER_TRIGGER_PIN  3
-#define RANGEFINDER_ECHO_PIN    A3
-#define TEMPERATURE_PIN         A2
+#define RANGEFINDER_TRIGGER_PIN  8
+const int RANGEFINDER_ECHO_PIN = A3;
+const int TEMPERATURE_PIN = A2;
 
 // General Constants
 #define MAX_DISTANCE       380 // maximum reading distance of ultrasonic sensor in cm
 #define MAX_SPEED          350 // maximum PWM speed
+#define MANUAL_SPEED       250 // set speed for manual control
 
 // Global Variables
-float temperature;    // temperature value in C
+int temperature;    // temperature value in C
 float echoPulseFront; // time returned from ultrasonic sensor
 float velocity;       // intermediate ultrasonic sensor calculation
 float time;           // intermediate ultrasonic sensor calculation
@@ -66,7 +67,7 @@ byte slices[6][8] = {
 };
 
 // collision detection threshold approach speeds and distances
-char approachWallSpeeds[6]     = {300, 200, 150, 100, 50, 0};
+char approachWallSpeeds[6]   = {300, 200, 150, 100, 50, 0};
 int approachWallThreshold[6] = {50,  35,  25,  15,  10, 3};
 
 // Create input/output objects
@@ -91,11 +92,13 @@ void setup()
   lcd.begin(16, 2);        // initialize the lcd for 16 chars 2 lines and turn on backlight
   lcd.home();
   lcd.clear();
+  lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
+  lcd.setBacklight(HIGH);
+  delay(100);
   for (int i = 0; i < 6; i++) {
     lcd.createChar(i, slices[i]);
   }
   recordTemp();
-  delay(1000);
 }
 
 /*
@@ -107,7 +110,7 @@ void setup()
 // records the temperature and calculates the speed of sound
 void recordTemp() {
   int data = analogRead(TEMPERATURE_PIN);
-  int temperature = (500 * data) >> 10;
+  temperature = (500 * data) >> 10;
   velocity = (331.3 + (0.6 * temperature)); // speed of sound
 }
 
@@ -148,7 +151,7 @@ void bluetoothData(String message) {
  *------------------------------------------------------------------------------------------
 */
 
-// clears a given line on the lcd
+//clears a given line on the lcd
 void clearLine(int line) {
   lcd.setCursor(0, line);
   lcd.print("                ");
@@ -156,7 +159,7 @@ void clearLine(int line) {
   lcd.setCursor(0, line);
 }
 
-// Displays the distance measurement on the top line of the LCD
+//Displays the distance measurement on the top line of the LCD
 void lcdDisplay() {
   lcd.setCursor(0, 0);
   lcd.print("Distance: ");
@@ -244,7 +247,7 @@ void lcdRefresh() {
   }
   // deals with distance values less that 14cm, including zero
   else {
-    distanceLive(0); // division will pass 0
+    distanceLive(0);
   }
   lcdDisplay();
   delay(100);
@@ -262,8 +265,8 @@ void lcdRefresh() {
 
 //sets the speeds of each motor
 void setSpeeds(char left, char right) {
-  analogWrite (RIGHT_MOTOR_SPEED, right);  //PWM Speed Control
-  analogWrite (LEFT_MOTOR_SPEED, left);  //PWM Speed Control
+  analogWrite (RIGHT_MOTOR_SPEED, right * 51 / 80);  //PWM Speed Control
+  analogWrite (LEFT_MOTOR_SPEED, left * 51 / 80);  //PWM Speed Control
 }
 // stops both motors
 void brake() {
@@ -301,7 +304,7 @@ void turnLeft() {
 void turn90Left() {
   turnRight();
   setSpeeds(150, 150);
-  delay(500);
+  delay(1000);
   brake();
 }
 
@@ -324,8 +327,10 @@ void manualDrivingMode(char heading) {
     turnRight();
   else if (heading == CENTRE)
     forward();
-  else if (heading == FORWARD)
+  else if (heading == FORWARD) {
     forward();
+    setSpeeds(MANUAL_SPEED, MANUAL_SPEED);
+  }
   else if (heading == STOP)
     brake();
   else if (heading == BACKUP)
@@ -339,8 +344,19 @@ void manualDrivingMode(char heading) {
 */
 void loop() {
   if (autonomous) {
-    forward();
+    //    forward();
+    //    setSpeeds(350, 350);
+    //    delay(2000);
+    //    setSpeeds(300, 300);
+    //    delay(2000);
+    //    setSpeeds(250, 250);
+    //    delay(2000);
+    //    setSpeeds(150, 150);
+    //    delay(2000);
+    //    setSpeeds(75, 75);
+    //    delay(2000);
     char newSpeed = calculatedApproach();
+    lcdRefresh();
     if (newSpeed == 0) { // at wall, need to turn left
       brake();
       turn90Left();
