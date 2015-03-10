@@ -5,29 +5,12 @@
 DualVNH5019MotorShield::DualVNH5019MotorShield()
 {
   //Pin map
-  _INA1 = 2;
+  _INA1 = 6;
   _INB1 = 4;
-  _EN1DIAG1 = 6;
   _CS1 = A0; 
   _INA2 = 7;
   _INB2 = 8;
-  _EN2DIAG2 = 12;
   _CS2 = A1;
-}
-
-DualVNH5019MotorShield::DualVNH5019MotorShield(unsigned char INA1, unsigned char INB1, unsigned char EN1DIAG1, unsigned char CS1, 
-                                               unsigned char INA2, unsigned char INB2, unsigned char EN2DIAG2, unsigned char CS2)
-{
-  //Pin map
-  //PWM1 and PWM2 cannot be remapped because the library assumes PWM is on timer1
-  _INA1 = INA1;
-  _INB1 = INB1;
-  _EN1DIAG1 = EN1DIAG1;
-  _CS1 = CS1;
-  _INA2 = INA2;
-  _INB2 = INB2;
-  _EN2DIAG2 = EN2DIAG2;
-  _CS2 = CS2;
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -38,12 +21,10 @@ void DualVNH5019MotorShield::init()
   pinMode(_INA1,OUTPUT);
   pinMode(_INB1,OUTPUT);
   pinMode(_PWM1,OUTPUT);
-  pinMode(_EN1DIAG1,INPUT);
   pinMode(_CS1,INPUT);
   pinMode(_INA2,OUTPUT);
   pinMode(_INB2,OUTPUT);
   pinMode(_PWM2,OUTPUT);
-  pinMode(_EN2DIAG2,INPUT);
   pinMode(_CS2,INPUT);
   #if defined(__AVR_ATmega168__)|| defined(__AVR_ATmega328P__) || defined(__AVR_ATmega32U4__)
   // Timer 1 configuration
@@ -193,14 +174,3 @@ unsigned int DualVNH5019MotorShield::getM2CurrentMilliamps()
   return analogRead(_CS2) * 34;
 }
 
-// Return error status for motor 1 
-unsigned char DualVNH5019MotorShield::getM1Fault()
-{
-  return !digitalRead(_EN1DIAG1);
-}
-
-// Return error status for motor 2 
-unsigned char DualVNH5019MotorShield::getM2Fault()
-{
-  return !digitalRead(_EN2DIAG2);
-}
