@@ -5,7 +5,7 @@
 #include <Wire.h>
 #include "DualVNH5019MotorShield.h"
 
-int autonomous = 1;
+int autonomous = 1; // default robot mode
 
 // Controller serial commands
 const char LEFT = 'L';
@@ -16,7 +16,7 @@ const char STOP = 'S';
 const char BACKUP = 'B';
 
 // LCD
-// NOTE: These are **NOT** Arduino pins, they are only needed to be delcared for so we can use the LCD library.
+// NOTE: These are **NOT** Arduino pins, they are only needed to be delcared so we can use the LCD library.
 #include "LCD.h"
 #include "LiquidCrystal_I2C.h"
 #define I2C_ADDR  0x27 // I2C Address for LCD Display
@@ -28,7 +28,7 @@ const char BACKUP = 'B';
 #define D5_PIN  5
 #define D6_PIN  6
 #define D7_PIN  7
-#define BLOCK   0xFF // block character
+#define BLOCK   0xFF // block character code
 
 // Motors
 #define DIRECTION_CONTROL_M1  4    // Right motor Direction Control
@@ -44,16 +44,16 @@ const int TEMPERATURE_PIN = A2;
 
 // General Constants
 #define MAX_DISTANCE       380 // maximum reading distance of ultrasonic sensor in cm
-#define MAX_SPEED          350 // maximum PWM speed
-#define MANUAL_SPEED       250 // set speed for manual control
+#define MAX_SPEED          350 // maximum PWM motor speed
+#define MANUAL_SPEED       200 // set speed for manual control
 
 // Global Variables
-int temperature;    // temperature value in C
-float echoPulseFront; // time returned from ultrasonic sensor
-float velocity;       // intermediate ultrasonic sensor calculation
-float time;           // intermediate ultrasonic sensor calculation
-float distanceCm;     // distance read by ultrasonic sensor
-int distanceLast;     // keeps track of last moisture reading
+int temperature;      // temperature value in degrees C
+float echoPulse;      // time returned from ultrasonic sensor
+float velocity;       // intermediate ultrasonic sensor calculation value
+float time;           // intermediate ultrasonic sensor calculation value
+float distanceCm;     // distance read by ultrasonic sensor in cm
+int distanceLast;     // keeps track of last distance measurement
 int music = 0;        // assigned the values 0, 1, or 2 to play a song depending on the value
 
 // array of custom characters that each represent a different amount of lines filled
@@ -72,6 +72,7 @@ char approachWallSpeeds[6]   = {300, 200, 150, 100, 50, 0};
 int approachWallThreshold[6] = {50,  35,  25,  15,  10, 3};
 
 // Create input/output objects
+DualVNH5019MotorShield motor;
 NewPing sonar(RANGEFINDER_TRIGGER_PIN, RANGEFINDER_ECHO_PIN, MAX_DISTANCE); // initialize ultrasonic sensor
 LiquidCrystal_I2C lcd(I2C_ADDR, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN); // Set the LCD I2C address
 
@@ -84,6 +85,7 @@ LiquidCrystal_I2C lcd(I2C_ADDR, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, 
 void setup()
 {
   Serial.begin(9600);
+  motor.init();
   for (int i = 4; i <= 7; i++) { // Motor Pin Assignments
     pinMode(i, OUTPUT);
   }
@@ -117,8 +119,8 @@ void recordTemp() {
 
 // records the distance to an obstruction
 void reportDistance() {
-  echoPulseFront = float(sonar.ping_median()); // returns time to and from object
-  time = (echoPulseFront) / 2; // divide by two because functions returns twice the time needed
+  echoPulse = float(sonar.ping_median()); // returns time to and from object
+  time = (echoPulse) / 2; // divide by two because functions returns twice the time needed
   distanceCm = (velocity * time) / 10000;
 }
 
@@ -265,46 +267,51 @@ void lcdRefresh() {
 */
 
 //sets the speeds of each motor
-void setSpeeds(char left, char right) {
-  analogWrite (RIGHT_MOTOR_SPEED, right * 51 / 80);  //PWM Speed Control
-  analogWrite (LEFT_MOTOR_SPEED, left * 51 / 80);  //PWM Speed Control
-}
+//void setSpeeds(char left, char right) {
+//  analogWrite (RIGHT_MOTOR_SPEED, right * 51 / 80);  //PWM Speed Control
+//  analogWrite (LEFT_MOTOR_SPEED, left * 51 / 80);  //PWM Speed Control
+//}
 // stops both motors
 void brake() {
-  digitalWrite(DIRECTION_CONTROL_M1, LOW); //brake right wheel
-  digitalWrite(DIRECTION_CONTROL_M2, LOW); //brake left wheel
+//  digitalWrite(DIRECTION_CONTROL_M1, LOW); //brake right wheel
+//  digitalWrite(DIRECTION_CONTROL_M2, LOW); //brake left wheel
+  motor.setBrakes(400, 400);
 }
 // moves both motors forward
-void forward() {
-  digitalWrite(DIRECTION_CONTROL_M1, HIGH); //right wheel moves forwards
-  digitalWrite(DIRECTION_CONTROL_M2, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
+void forward(int left, int right) {
+  //digitalWrite(DIRECTION_CONTROL_M1, HIGH); //right wheel moves forwards
+  //digitalWrite(DIRECTION_CONTROL_M2, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
+  motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 // move both motors backward
-void backward() {
-  digitalWrite(DIRECTION_CONTROL_M1, LOW); //right wheel moves backwards
-  digitalWrite(DIRECTION_CONTROL_M2, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
+void backward(int left, int right) {
+  //digitalWrite(DIRECTION_CONTROL_M1, LOW); //right wheel moves backwards
+  //digitalWrite(DIRECTION_CONTROL_M2, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
+  motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 //turns right
 //had to switch right and left turning due to board production issues
-void turnRight() {
-  digitalWrite(DIRECTION_CONTROL_M1, LOW); //right wheel moves backwards
-  digitalWrite(DIRECTION_CONTROL_M2, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
+void turnRight(int left, int right) {
+  //digitalWrite(DIRECTION_CONTROL_M1, LOW); //right wheel moves backwards
+  //digitalWrite(DIRECTION_CONTROL_M2, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
+  motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 //turns left
 //had to switch right and left turning due to board production issues
-void turnLeft() {
-  digitalWrite(DIRECTION_CONTROL_M1, HIGH); //right wheel moves forwards
-  digitalWrite(DIRECTION_CONTROL_M2, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
+void turnLeft(int left, int right) {
+  //digitalWrite(DIRECTION_CONTROL_M1, HIGH); //right wheel moves forwards
+  //digitalWrite(DIRECTION_CONTROL_M2, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
+  motor.setSpeeds(left, right);
   //stringCreate(a, b, encoderRight, encoderLeft, music);
 }
 
 // turns the robot 90 degrees to the left
 void turn90Left() {
-  turnRight();
-  setSpeeds(150, 150);
+  turnRight(150, 150);
+  //setSpeeds(150, 150);
   delay(1000);
   brake();
 }
@@ -323,19 +330,19 @@ char calculatedApproach() {
 
 void manualDrivingMode(char heading) {
   if (heading == LEFT)
-    turnLeft();
+    turnLeft(MANUAL_SPEED, MANUAL_SPEED);
   else if (heading == RIGHT)
-    turnRight();
+    turnRight(MANUAL_SPEED, MANUAL_SPEED);
   else if (heading == CENTRE)
-    forward();
+    forward(MANUAL_SPEED, MANUAL_SPEED);
   else if (heading == FORWARD) {
-    forward();
-    setSpeeds(MANUAL_SPEED, MANUAL_SPEED);
+    forward(MANUAL_SPEED, MANUAL_SPEED);
+    //setSpeeds(MANUAL_SPEED, MANUAL_SPEED);
   }
   else if (heading == STOP)
     brake();
   else if (heading == BACKUP)
-    backward();
+    backward(MANUAL_SPEED, MANUAL_SPEED);
 }
 
 /*
@@ -361,10 +368,10 @@ void loop() {
     if (newSpeed == 0) { // at wall, need to turn left
       brake();
       turn90Left();
-      forward();
+      //forward();
       newSpeed = calculatedApproach(); // proceed after turn
     }
-    setSpeeds(newSpeed, newSpeed);
+    forward(newSpeed, newSpeed);
   } else {  //full manual mode using controller
     while (Serial.available() > 0) {
       char heading = Serial.read();
