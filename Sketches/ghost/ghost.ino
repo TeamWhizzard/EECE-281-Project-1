@@ -3,6 +3,7 @@
 // Standard Libraries
 #include <math.h>
 #include <Wire.h>
+#include "DualVNH5019MotorShield.h"
 
 int autonomous = 1;
 
