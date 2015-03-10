@@ -1,7 +1,10 @@
-#include <LiquidCrystal.h>
-#include<Wire.h>
-#include<Math.h>
+#include <LiquidCrystal.h>   //For LCD functionality
+#include <Wire.h>            //For Gyro/Accell functionality
+#include <Math.h>            //For calculating angles (arctan function)
+#incldue "WhizzardTone.h"    //For playing Pacman music
 
+/*-----------------LCD Variables-------------------------
+*/
 #define RS_PIN   4
 #define E_PIN    7
 #define D4_PIN   8
@@ -11,6 +14,117 @@
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(RS_PIN, E_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN);
 
+/*-----------------Pacman Tone Variables---------------------------
+*/
+//Int variables to relate songs to a number
+const int songTheme = 0;  
+const int songMunch = 1;
+const int songDeath = 2;
+const int SIXTYFOURTH = 35; // length of sixty-fourth note in ms
+const int NS = 0;  // note space - rest
+
+//The appropriate tones to be played for the theme 
+const int theme_melody[] = {
+  // measure one
+  NOTE_B4, NOTE_B4, NOTE_B4, NS,
+  NOTE_B5, NOTE_B5, NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+  
+  NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NOTE_DS5,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+  
+  NOTE_C5, NOTE_C5, NOTE_C5, NS,
+  NOTE_C6, NOTE_C6, NOTE_C6, NS,
+  NOTE_G5, NOTE_G5, NOTE_G5, NS,
+  NOTE_E5, NOTE_E5, NOTE_E5, NS,
+  
+  NOTE_C6, NS,
+  NOTE_G5, NOTE_G5, NOTE_G5, NOTE_G5, NOTE_G5, NS,
+  NOTE_E5, NOTE_E5, NOTE_E5, NOTE_E5,
+  NOTE_E5, NOTE_E5, NOTE_E5, NS,
+  
+  // measure two
+  NOTE_B4, NOTE_B4, NOTE_B4, NS,
+  NOTE_B5, NOTE_B5, NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+  
+  NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NOTE_DS5,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+  
+  NOTE_DS5, NS,
+  NOTE_E5, NS,
+  NOTE_F5, NOTE_F5, NOTE_F5, NS,
+  NOTE_F5, NS,
+  NOTE_FS5, NS,
+  NOTE_G5, NOTE_G5, NOTE_G5, NS,
+  
+  NOTE_G5, NS,
+  NOTE_GS5, NS,
+  NOTE_A5, NOTE_A5, NOTE_A5, NS,
+  NOTE_B5, NOTE_B5, NOTE_B5, NOTE_B5,
+  NOTE_B5, NOTE_B5, NOTE_B5, NS
+};
+
+//The appropriate bass to be played for the theme
+const int theme_bass[] = {
+  // measure one
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+  
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+  
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NS,
+  NOTE_C4, NOTE_C4, NOTE_C4, NS,
+  
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NS,
+  NOTE_C4, NOTE_C4, NOTE_C4, NS,
+  
+  // measure two
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+  
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+  
+  NOTE_FS3, NOTE_FS3, NOTE_FS3, NOTE_FS3,
+  NOTE_FS3, NOTE_FS3, NOTE_FS3, NS,
+  NOTE_GS3, NOTE_GS3, NOTE_GS3, NOTE_GS3,
+  NOTE_GS3, NOTE_GS3, NOTE_GS3, NS,
+  
+  NOTE_AS3, NOTE_AS3, NOTE_AS3, NOTE_AS3,
+  NOTE_AS3, NOTE_AS3, NOTE_AS3, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NOTE_B3,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS
+};
+
+//Initalize the Tone objects to be used for treble and bass
+Tone treble;
+Tone bass;
+
+//Assign buzzer pins
+const int pinPiezoTreble = 5;
+const int pinPiezoBass = 6;
+/*-----------------MP6050 Gyro/Accell Tracking Variables----------------------
+*/
 const int MPU=0x68;  // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
 const int FORWARD_THRESHOLD = -2500;   //Acceleration (scaled) threshold value to speed up
@@ -23,12 +137,14 @@ const int LEFT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning
 const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 const int RADIAN_TO_DEGREES = 180/PI;
 const int alpha = 0.92;  //Complimentary filter coefficient 
+
 float totalDegrees, gyroDegrees, xTilt,yTilt, zTilt;  //Variables to keep track of filter, gyro, and accel angle measurements
-int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
 int AcXOffset = 0; int AcYOffset = 0; int AcZOffset = 1860;     //Offset to normalize accell readings to 0 (except AcZ -> gravity=16384)
 int GyXOffset = -110; int GyYOffset= -140; int GyZOffset= -54;  //Offset to normalize gyro readings to 0
+int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
 
-enum controlState {  //enumeration to cleanly maintain state of controller
+//enumeration to cleanly maintain state of controller
+enum controlState {  
   left,
   center,
   right
@@ -44,7 +160,30 @@ void setup(){
       lcd.begin(16, 2);
       Serial.begin(9600);
       Serial.println("C");  
+      treble.begin(pinPiezoTreble);
+      bass.begin(pinPiezoBass);
     }
+
+// Pacman music!
+// Opening theme song on button push
+// Play Death when robot runs into a wall
+// Play Munch when starts going in particular direction
+void playSong (int song) {
+  if (song == songTheme) {
+    int numNotes = sizeof(theme_melody) / sizeof(int);
+    for (int note = 0; note < numNotes; note++) {
+      treble.play(theme_melody[note]);
+      bass.play(theme_bass[note]);
+      delay(SIXTYFOURTH);
+      treble.stop();
+      bass.stop();
+    }
+  }
+  //To be added if needed later (for munching and dying)
+  else if (song == songMunch) {}
+  else { // song == songDeath
+  }
+}
 
 //Updates all acceleration and angular velocity readings
 void readAll(){
@@ -76,7 +215,8 @@ void printAll(){
       Serial.print(" | GyZ = "); Serial.println(GyZ);
 }
 
-//Counts the degrees rotated 
+//Measures the degrees rotated, where center is defined as the point of system initalization.
+//Tilting the controller about its x axis is what contributes to the left/right/center control
 void countRotate() {
     readAll();  //Update all accel/gyro values
     float time = millis();
@@ -144,10 +284,12 @@ void calibrateError(){
   }
   AcXOffset = sumAcXDiff/(i); AcYOffset = sumAcYDiff/(i); AcZOffset = sumAcZDiff/(i);  //Average all accell offset measurements
   GyXOffset = sumGyXDiff/(i); GyYOffset = sumGyYDiff/(i); GyZOffset = sumGyZDiff/(i);  //Average all gyro offset measurements
-  Serial.println(AcXOffset); Serial.println(AcYOffset); Serial.println(AcZOffset);
+  Serial.println(AcXOffset); Serial.println(AcYOffset); Serial.println(AcZOffset);     //Print out offsets for debugging purposes
   Serial.println(GyXOffset); Serial.println(GyYOffset); Serial.println(GyZOffset);
 
 }
+
+//Calculate angle(about x axis) via accelerometer readings 
 void processTilt(){
   xTilt = atan2(AcX,sqrt(pow(AcY, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
   //yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
@@ -165,50 +307,56 @@ int calcFilterAngle(float gyroAngle, float acelAngle){
 }
 
 void parseSerialData(){
+  //Only perform LCD actions as serial data is sent to controller
   while (Serial.available() > 0) {
+    //Order of data comming from robot to be formatted to LCD
     int rightMotor;
     int leftMotor;
     int rightEncoder;
     int leftEncoder;
     int music;
-
+    
+    //Parse the data in their expected order
     rightMotor = Serial.parseInt();
     leftMotor = Serial.parseInt();
     rightEncoder = Serial.parseInt();
     leftEncoder = Serial.parseInt();
     music = Serial.parseInt();
-
+    
+    //Calculate delta of revolutions where positive means left wheel is ahead
     int encoderDelta = leftEncoder - rightEncoder;
     
+    //Call this function to perform printing to LCD
     lcdPrintMotorDebug(rightMotor, leftMotor, encoderDelta);
   }
 }
 
 void lcdPrintMotorDebug(int right, int left, int encoder) {
-    lcd.clear();
+    lcd.clear();          //Clear the LCD before printing new data
 
-    lcd.leftToRight();
-    lcd.setCursor(0, 0);
-    lcd.print("Left ");
-    lcd.setCursor(8, 0);
-    lcd.print("Right ");
+    lcd.leftToRight();    //Orient messages to be printed from left to right
+    lcd.setCursor(0, 0);  //Set cursor to top left corner
+    lcd.print("Left ");   //Print Left to occupy first row, 4 columns
+    lcd.setCursor(8, 0);  //Set cursor to top right half corner
+    lcd.print("Right ");  //Print Right to occupy first row, columns 8-12
 
-    lcd.rightToLeft();
-    lcd.setCursor(3, 1);
-    lcd.print(left);
+    lcd.rightToLeft();    //Orient messages to be printed right to left
+    lcd.setCursor(3, 1);  //Set cursor to bottom row, 3rd column (right under the t in left)
+    lcd.print(left);      //Print the left motor data <-----
 
-    lcd.setCursor(11, 1);
-    lcd.print(right);
-
-    if (encoder != 0) {
-      if (encoder > 0) {
+    lcd.setCursor(11, 1); //Set cursor to bottom row (right under h in right)
+    lcd.print(right);     //Print the right motor data <-----
+  
+    if (encoder != 0) {   //If there is a delta, perform LCD actions appropriately 
+      if (encoder > 0) {  //Greater than 0 (left greater)? Set cursor under left side 
         lcd.setCursor(6, 1);
-      } else {
+      } else {            //Less than 0(right greater)? Set cursor under right side
         lcd.setCursor(14, 1);
       }
-      lcd.print(encoder);
-    } else { // motors are equal 
-        lcd.setCursor(6, 1);
+      lcd.print(encoder);  //Print the delta at the position 
+    } else { // motors are equal
+        //Do the same thing as if there was a delta but with blank data  
+        lcd.setCursor(6, 1);  
         lcd.print("   ");
         lcd.setCursor(14, 1);
         lcd.print("   ");
