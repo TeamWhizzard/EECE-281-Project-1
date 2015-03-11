@@ -4,12 +4,12 @@
 #include "WhizzardTone.h"    //For playing Pacman music
 
 //LCD Constants
-#define RS_PIN   4
-#define E_PIN    7
-#define D4_PIN   8
-#define D5_PIN   9
-#define D6_PIN  10
-#define D7_PIN  11
+#define RS_PIN  13
+#define E_PIN   12
+#define D4_PIN  11
+#define D5_PIN  10
+#define D6_PIN  9
+#define D7_PIN  8
 
 // block character
 #define BLOCK   0xFF
