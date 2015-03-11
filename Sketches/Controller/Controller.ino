@@ -4,12 +4,18 @@
 #include "WhizzardTone.h"    //For playing Pacman music
 
 //LCD Constants
-#define RS_PIN  13
-#define E_PIN   12
-#define D4_PIN  11
-#define D5_PIN  10
-#define D6_PIN  9
-#define D7_PIN  8
+#define RS_PIN     8
+#define E_PIN      9
+#define D4_PIN    10
+#define D5_PIN    11
+#define D6_PIN    12
+#define D7_PIN    13
+
+//Automatic, Manual Mode
+#define BUTTON    7
+#define MANUAL    1
+#define AUTO      0
+int lastButtonState;
 
 // block character
 #define BLOCK   0xFF
@@ -176,6 +182,7 @@ byte slices[6][8] = {
 
 void setup() {
   Serial.begin(9600);
+  pinMode(BUTTON, INPUT);
   Wire.begin();
   Wire.beginTransmission(MPU);
   Wire.write(0x6B);  // PWR_MGMT_1 register
@@ -189,9 +196,22 @@ void setup() {
   }
   treble.begin(pinPiezoTreble);
   bass.begin(pinPiezoBass);
-  //playSong(songTheme);
-  delay(500); // semi-needed delay because the robot will start moving after.
-  Serial.println("C");
+  //bluetoothInit();
+  lastButtonState = digitalRead(BUTTON);
+  playSong(songTheme);
+}
+
+// Ensures a Bluetooth Connection. Does not continue until established.
+void bluetoothInit() {
+  while (1) {
+    lastButtonState = digitalRead(BUTTON);
+    Serial.println(lastButtonState);
+    delay(250);
+    if (Serial.available() > 0) {
+      Serial.read(); // Robot has confirmed the bluetooth connection, continue with program.
+      break;
+    }
+  }
 }
 
 // Pacman music!
@@ -280,7 +300,7 @@ void checkSpeedControl() {
     Serial.println("S");
     speedState = stopped;
   }
-  if (totalSpeedDegrees > STOP_START_BOUNDARY && totalSpeedDegrees < FORWARD_END_BOUNDARY && speedState != stopped){
+  if (totalSpeedDegrees > STOP_START_BOUNDARY && totalSpeedDegrees < FORWARD_END_BOUNDARY && speedState != stopped) {
     //Serial.print("F");
     //speedState = forward;
   }
@@ -332,7 +352,7 @@ void calibrateError() {
 //Calculate angle(about x axis) via accelerometer readings
 void processTilt() {
   xTilt = atan2(AcX, sqrt(pow(AcY, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
-  yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
+  yTilt = atan2(AcY, sqrt(pow(AcX, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
   //zTilt = atan2(sqrt(pow(AcX, 2)+ pow(AcY, 2)),AcZ) * RADIAN_TO_DEGREES;
   //Serial.print("X Tilt = "); Serial.print(xTilt);
   //Serial.print(" | Y Tilt = "); Serial.print(yTilt);
@@ -355,97 +375,85 @@ void clearLine(int line) {
   lcd.setCursor(0, line);
 }
 
-void lcdPrintSpeed(int val){
-  if(val >= 100)
+void lcdPrintSpeed(int val) {
+  if (val >= 100)
     lcd.print(val);
-  else if(val < 100 && val >= 10){
+  else if (val < 100 && val >= 10) {
     lcd.print(" ");
     lcd.print(val);
   }
-  else{
+  else {
     lcd.print("  ");
     lcd.print(val);
   }
 }
 
-void lcdEncoderVal(int num){
+void lcdEncoderVal(int num) {
   lcd.print("+");
   lcd.print(num);
 }
 
-void lcdDisplay(int left, int right, int encoder) {
-  lcd.setCursor(0,0);
-  
-  lcd.print("L:");
-  lcdPrintSpeed(left);
-  if(encoder < 0)
-    lcdEncoderVal(abs(encoder));
-  else
-    lcd.print("   ");
-    
-  lcd.setCursor(8,0);
-  lcd.print("R:");
-  lcdPrintSpeed(right);
-  if(encoder > 0)
-    lcdEncoderVal(encoder);
-  else
-    lcd.print("   ");
-}
-
-void lcdMotorSpeedGraph(int left, int right){
-  clearLine(1);
-  if(left < 0){
-    if(left <= 10){
-      while(left >= 5){
-        lcd.print(BLOCK);
-        left -= 5;
-      }
-    }
-    lcd.write(byte(left));
-  }
-  lcd.setCursor(8,1);
-  if(right < 0){
-    if(right <= 10){
-      while(right >= 5){
-        lcd.print(BLOCK);
-        left -= 5;
-      }
-    }
-    lcd.write(byte(right));
-  }
-}
-
-void lcdRefresh(int left, int right, int encoder) {
-  lcdDisplay(left, right, encoder);
-  lcdMotorSpeedGraph(left/10, right/10);
-  delay(100);
-}
-
-void updateLCD() {
+void autoModeLCD() {
   while (Serial.available() > 0) {
-    int rightMotor;
-    int leftMotor;
+    int rightSpeed;
+    int leftSpeed;
     int rightEncoder;
     int leftEncoder;
 
-    rightMotor = Serial.parseInt();
-    leftMotor = Serial.parseInt();
+    rightSpeed = Serial.parseInt();
+    leftSpeed = Serial.parseInt();
     rightEncoder = Serial.parseInt();
     leftEncoder = Serial.parseInt();
 
-    int encoderDelta = rightEncoder - leftEncoder;
+    lcd.clear();
 
-    lcdRefresh(leftMotor, rightMotor, encoderDelta);
+    lcd.leftToRight();
+    lcd.setCursor(0, 0);
+    lcd.print("L: ");
+
+    lcd.rightToLeft();
+    lcd.setCursor(6, 0);
+    lcd.print(leftSpeed);
+    lcd.setCursor(16, 0);
+    lcd.print(leftEncoder);
+
+    lcd.leftToRight();
+    lcd.setCursor(0, 1);
+    lcd.print("R: ");
+
+    lcd.rightToLeft();
+    lcd.setCursor(6, 1);
+    lcd.print(rightSpeed);
+    lcd.setCursor(16, 1);
+    lcd.print(rightEncoder);
   }
 }
 
-void loop() {
-  countRotate();  //While the controller is moving, record total degrees that the controller turned
-  updateLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
-  checkTurnControl();
-  checkSpeedControl();
-  //readAll();
-  //processTilt();
-  //printAll();  //Print accellerometer/gyroscope reading values
-  //delay(readDelay);
+void manualModeLCD() {
+  lcd.setCursor(0, 0);
+  lcd.print("Manual Mode!");
 }
+
+void debug() {
+  readAll();
+  processTilt();
+  printAll();  //Print accellerometer/gyroscope reading values
+  delay(readDelay);
+}
+
+void loop() {
+  int newButtonState = digitalRead(BUTTON);
+  if (newButtonState != lastButtonState) {
+    Serial.println(newButtonState);
+    lastButtonState = newButtonState;
+  }
+  if (lastButtonState == MANUAL) {
+    //countRotate();  //While the controller is moving, record total degrees that the controller turned
+    manualModeLCD();
+    //checkTurnControl();
+    //checkSpeedControl();
+  } else {
+    autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
+  }
+}
+

@@ -11,7 +11,6 @@
 #define MANUAL_SPEED       200 // set speed for manual control
 
 int autonomous = AUTO; // current robot mode - default manual
-int music = 0;        // assigned the values 0, 1, or 2 to play a song depending on the value
 
 // Controller serial commands
 const char LEFT = 'L';
@@ -34,17 +33,20 @@ WhizzardLCD wLcd;
 void setup()
 {
   Serial.begin(9600);
-  wMotors.init();  
+  //wMotors.init();  
   wSensor.init();
   wLcd.init();
+  bluetoothInit();
+}
 
+void bluetoothInit() {
   while (1) {
     if (Serial.available() > 0) {
       int mode = Serial.parseInt();
       if (mode == 0 || mode == 1) {
         autonomous = mode;
       }
-     Serial.println(1);
+     Serial.println("!");
      Serial.flush();
      break;
     }
@@ -58,7 +60,7 @@ void setup()
 */
 void loop() {
   
-  if (autonomous == AUTO) {
+  /*if (autonomous == AUTO) {
     char newSpeed = wSensor.calculatedApproach(); // calculate distance with ultrasonic sensor
     wLcd.lcdRefresh(wSensor.getDistanceCm()); // display values on LCD display
     if (newSpeed == 0) { // at wall, need to turn left
@@ -73,7 +75,7 @@ void loop() {
       char heading = Serial.read();
       manualDrivingMode(heading);
     }
-  }
+  }*/
 }
 
 // Controller driving logic interpreter
@@ -100,18 +102,17 @@ void manualDrivingMode(char heading) {
 
 // creates a string out of individual motor speeds, encoder values and music selection value
 // to send to the controller via bluetooth
-void stringCreate(int speedRight, int speedLeft, int encoderRight, int encoderLeft, int music) {
+void createBluetoothMessage(int speedRight, int speedLeft, int encoderRight, int encoderLeft) {
   String num1 = String(speedRight);
   String num2 = String(speedLeft);
   String num3 = String(encoderRight);
   String num4 = String(encoderLeft);
-  String num5 = String(music);
 
-  String message = num1 + "," + num2 + "," + num3 + "," + num4 + "," + num5;
-  bluetoothData(message);
+  String message = num1 + "," + num2 + "," + num3 + "," + num4;
+  bluetoothMessage(message);
 }
 
 // sends a string via bluetooth from the robot to the controller
-void bluetoothData(String message) {
+void bluetoothMessage(String message) {
   Serial.print(message); // prints message containing motor speeds and encoder values to the serial monitor
 }
