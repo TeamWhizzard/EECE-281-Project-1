@@ -120,8 +120,8 @@ void manualDrivingMode(char heading) {
     forward(MANUAL_SPEED);
   else if (heading == STOP)
     brake();
-  else if (heading == BACKUP)
-    backward(MANUAL_SPEED);
+  //else if (heading == BACKUP)
+    //backward(MANUAL_SPEED);
 }
 
 /*

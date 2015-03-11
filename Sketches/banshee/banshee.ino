@@ -7,6 +7,9 @@
 WhizzardLCD wLcd;
 
 // Sonar
+#define SIDE_TRIGGER_PIN 9//TODO
+#define SIDE_ECHO_PIN A1 // TODO
+int distanceCmSide = 999;
 #define RANGEFINDER_TRIGGER_PIN  8
 #define RANGEFINDER_ECHO_PIN A3
 #define TEMPERATURE_PIN A2
@@ -14,7 +17,8 @@ WhizzardLCD wLcd;
 double distanceCm;     // distance read by ultrasonic sensor in cm
 int temperature;      // temperature value in degrees C
 float soundVelocity;       // intermediate ultrasonic sensor calculation value
-volatile float echoPulse;           // time returned from ultrasonic sensor
+volatile float echoPulseFront;           // time returned from ultrasonic sensor
+volatile float echoPulseSide;
 float soundTime;           // intermediate ultrasonic sensor calculation value
 unsigned int pingSpeed = 50; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
 unsigned long pingTimer = 0;     // Holds the next ping time.
@@ -22,7 +26,7 @@ unsigned long pingTimer = 0;     // Holds the next ping time.
 #define wallKi 50
 // PID term: accumulation of past error
 #define wallKd 1  // PID term: prediction of future error based on current rate of change
-double wallSetpoint = 10;
+double wallSetpoint = 20;
 
 // Motors & Encoders
 // TODO these commented out are all wrong, ignoring for now
@@ -54,34 +58,39 @@ double motorSetpoint = 0; // PID Setpoint
 unsigned long printTimer = 0;
 
 NewPing sonar(RANGEFINDER_TRIGGER_PIN, RANGEFINDER_ECHO_PIN, MAX_DISTANCE); // initialize ultrasonic sensor library
+NewPing sonarSide(SIDE_TRIGGER_PIN, SIDE_ECHO_PIN, MAX_DISTANCE); // initialize ultrasonic sensor library
 PID wallPID(&distanceCm, &motorSpeed, &wallSetpoint, wallKp, wallKi, wallKd, REVERSE);
 PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorKd, DIRECT);
 
 void setup() {
   Serial.begin(9600);                            //init the Serial port to print the data
-  
+
   wLcd.init();
   // Motor Setup
   for (int i = 4; i <= 7; i++) {                 // Motor Pin Assignments
     pinMode(i, OUTPUT);
   }
   attachInterrupt(0, rightISR, CHANGE);  //init interrupt 0 for digital pin 2
-  //attachInterrupt(LEFT, leftISR, RISING);   //init interrupt 1 for digital pin 3  
+  //attachInterrupt(LEFT, leftISR, RISING);   //init interrupt 1 for digital pin 3
   attachPinChangeInterrupt(11, leftISR, CHANGE); // Pin 3 produces interference on Pin 2 so we dug up this software excitement.
-  
+
   // PID controller setup
   motorPID.SetOutputLimits(-127, 127);
   motorPID.SetMode(AUTOMATIC); // pid is driving, to start
   motorPID.SetSampleTime(20); // Recalculate PID every x ms, no more
-  
-  // Ultrasound setup
+
+  // Ultrasound setup front
   pinMode(RANGEFINDER_TRIGGER_PIN, OUTPUT);
   pinMode(RANGEFINDER_ECHO_PIN, INPUT);
+
+  pinMode(SIDE_TRIGGER_PIN, OUTPUT);
+  pinMode(SIDE_ECHO_PIN, INPUT);
+
   pinMode(TEMPERATURE_PIN, INPUT);
   temperature = (500 * analogRead(TEMPERATURE_PIN)) >> 10;
   soundVelocity = (331.3 + (0.6 * temperature)); // speed of sound
-  
-  bluetoothInit();
+
+  //bluetoothInit();
 }
 
 void bluetoothInit() {
@@ -89,34 +98,34 @@ void bluetoothInit() {
     if (Serial.available() > 0) {
       int mode = Serial.parseInt();
       //if (mode == 0 || mode == 1) {
-        //autonomous = mode;
+      //autonomous = mode;
       //}
-     Serial.println("!");
-     Serial.flush();
-     break;
+      Serial.println("!");
+      Serial.flush();
+      break;
     }
   }
 }
 
 void autoModeLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
-    
-    wLcd.makestuff(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 
-    //lcd.rightToLeft();
-    /*lcd.setCursor(6, 0);
-    lcd.print(leftSpeed);
-    lcd.setCursor(16, 0);
-    lcd.print(leftEncoder);
+  wLcd.makestuff(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 
-    lcd.leftToRight();
-    lcd.setCursor(0, 1);
-    lcd.print("R: ");
+  //lcd.rightToLeft();
+  /*lcd.setCursor(6, 0);
+  lcd.print(leftSpeed);
+  lcd.setCursor(16, 0);
+  lcd.print(leftEncoder);
 
-    lcd.rightToLeft();
-    lcd.setCursor(6, 1);
-    lcd.print(rightSpeed);
-    lcd.setCursor(16, 1);
-    lcd.print(rightEncoder);
+  lcd.leftToRight();
+  lcd.setCursor(0, 1);
+  lcd.print("R: ");
+
+  lcd.rightToLeft();
+  lcd.setCursor(6, 1);
+  lcd.print(rightSpeed);
+  lcd.setCursor(16, 1);
+  lcd.print(rightEncoder);
   //}*/
 }
 
@@ -138,66 +147,66 @@ void bluetoothMessage(String message) {
 }
 
 void loop() {
-//  if ( (printTimer + 100) < millis() ) {
+  //  if ( (printTimer + 100) < millis() ) {
 
-// Motor serial prints for testing    
-//    Serial.print("Encoders: ");
-//    Serial.print(leftEncoder);
-//    Serial.print(" ");
-//    Serial.print(rightEncoder);
-//    Serial.print("       Speeds: ");
-//    Serial.print(leftSpeed);
-//    Serial.print(" ");
-//    Serial.print(rightSpeed);
-//    Serial.print("       Heading: ");
-//    Serial.println(motorSetpoint);
-//    printTimer = millis();
+  // Motor serial prints for testing
+  //    Serial.print("Encoders: ");
+  //    Serial.print(leftEncoder);
+  //    Serial.print(" ");
+  //    Serial.print(rightEncoder);
+  //    Serial.print("       Speeds: ");
+  //    Serial.print(leftSpeed);
+  //    Serial.print(" ");
+  //    Serial.print(rightSpeed);
+  //    Serial.print("       Heading: ");
+  //    Serial.println(motorSetpoint);
+  //    printTimer = millis();
 
-// Sonar serial prints for testing
-//    Serial.print("Distance: ");
-//    Serial.print(distanceCm);
-//    Serial.print(" cm Motorspeed: ");
-//    Serial.println(motorSpeed);
-//  }
-  
+  // Sonar serial prints for testing
+  //    Serial.print("Distance: ");
+  //    Serial.print(distanceCm);
+  //    Serial.print(" cm Motorspeed: ");
+  //    Serial.println(motorSpeed);
+  //  }
+
   // turning test function
-//  
-//    if ( (turnLastTime + 5000) < millis() ) {
-//      motorSetpoint = motorSetpoint + 10;
-//      turnLastTime = turnLastTime + 5000;
-//    }
+  //
+  //    if ( (turnLastTime + 5000) < millis() ) {
+  //      motorSetpoint = motorSetpoint + 10;
+  //      turnLastTime = turnLastTime + 5000;
+  //    }
 
- // records the distance to an obstruction
+  // records the distance to an obstruction
   if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
     pingTimer += pingSpeed;      // Set the next ping time.
     sonar.ping_timer(echoCheck); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
   }
-    wLcd.clearLine(0);
-    wLcd.print(String(distanceCm));
-    motorSpeed = map(distanceCm, 3, 200, 50, 300); // last value from 127 
-  
-// --------PID CONTROL CASE EXAMPLE--------    
-// When the encoder difference goes POSITIVE, the right wheel is moving faster.
-// So with DIRECT control, the output will go NEGATIVE to try and control it.
-// Since output is NEGATIVE, we should SUBTRACT it from the leftSpeed to make the left wheel catch up,
-// and ADD output to rightSpeed to slow the right wheel down.
-  motorInput = rightEncoder - leftEncoder;    
-  motorPID.Compute(); // updates PID output 
+  wLcd.clearLine(0);
+  wLcd.print(String(distanceCm));
+  motorSpeed = map(distanceCm, 3, 200, 50, 300); // last value from 127
+
+  // --------PID CONTROL CASE EXAMPLE--------
+  // When the encoder difference goes POSITIVE, the right wheel is moving faster.
+  // So with DIRECT control, the output will go NEGATIVE to try and control it.
+  // Since output is NEGATIVE, we should SUBTRACT it from the leftSpeed to make the left wheel catch up,
+  // and ADD output to rightSpeed to slow the right wheel down.
+  motorInput = rightEncoder - leftEncoder;
+  motorPID.Compute(); // updates PID output
   boolean motorOutputChanged = (motorOutput != lastMotorOutput);
   boolean motorSpeedChanged = (motorSpeed != lastMotorSpeed);
   if (motorOutputChanged || motorSpeedChanged) {
-    leftSpeed = motorSpeed - motorOutput;           
-    rightSpeed = motorSpeed + motorOutput;          
+    leftSpeed = motorSpeed - motorOutput;
+    rightSpeed = motorSpeed + motorOutput;
     forward(leftSpeed, rightSpeed);
     lastMotorOutput = motorOutput;
     lastMotorSpeed = motorSpeed;
   }
-  
-  if (distanceCm < (wallSetpoint + 1)) {
+
+  if (distanceCm < (wallSetpoint + 1) && (distanceCm != 0)) {
     turnLeft();
-    delay(1000);
+    delay(500);
   }
-  autoModeLCD(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+  autoModeLCD(rightSpeed, leftSpeed, distanceCm, distanceCmSide);
   createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 }
 
@@ -236,38 +245,83 @@ void forward(int leftMotor, int rightMotor) {
 
 void turnLeft() {
   analogWrite (5, 127); //PWM Speed Control (0-255)
-   digitalWrite(4, LOW); // HIGH = moves forwards
- 
-   // left goes backward 
-   analogWrite (6, 127); //PWM Speed Control (0-255)
-   digitalWrite(7, HIGH);  // HIGH = moves backward
-   
- /*rightEncoder = 0;
- leftEncoder = 0;
- 
- while((rightEncoder < 12)  && (leftEncoder < 10)) {
-     //continue;
- }*/
- if (leftEncoder < rightEncoder) { // scewed left, less turn
-   delay(650);
- }else { // scewed right, less turn
-   delay(650);
- }
- 
- analogWrite (5, 0); //PWM Speed Control (0-255)
-   analogWrite (6, 0); //PWM Speed Control (0-255)
-   
+  digitalWrite(4, LOW); // HIGH = moves forwards
+
+  // left goes backward
+  analogWrite (6, 127); //PWM Speed Control (0-255)
+  digitalWrite(7, HIGH);  // HIGH = moves backward
+
+  delay(450);
+
+  float pause = 50;
+  do {
+    sonarSide.ping_timer(echoCheckSide); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
+
+    autoModeLCD(rightSpeed, leftSpeed, distanceCm, distanceCmSide);
+
+    delay(pause);
+    pause = pause / 1.5;
+
+  } while (((distanceCmSide - distanceCm) > 0) || (distanceCm == 0));
+  analogWrite(5, 0);
+  analogWrite(6, 0);
+
+  /*if (leftEncoder < rightEncoder) { // scewed left, less turn
+    delay(650);
+  }else { // scewed right, less turn
+    delay(650);
+  }
+
+  analogWrite (5, 127); //PWM Speed Control (0-255)
+    analogWrite (6, 127); //PWM Speed Control (0-255)
+
+
+    // adjust to correct orientation with side echo
+   pingTimer = 0;
+   int time = millis();
+
+   /*while (sonar.) { // adjust for three seconds
+     if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
+       pingTimer += pingSpeed;      // Set the next ping time.
+       sonarSide.ping_timer(echoCheckSide); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
+     }
+
+       motorInput = rightEncoder - leftEncoder;
+       motorPID.Compute(); // updates PID output
+       boolean motorOutputChanged = (motorOutput != lastMotorOutput);
+       boolean motorSpeedChanged = (motorSpeed != lastMotorSpeed);
+       if (motorOutputChanged || motorSpeedChanged) {
+       leftSpeed = motorSpeed - motorOutput;
+       rightSpeed = motorSpeed + motorOutput;
+       forward(leftSpeed, rightSpeed);
+       lastMotorOutput = motorOutput;
+       lastMotorSpeed = motorSpeed;
+     }
+   }*/
 }
 
 // from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
 void echoCheck() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
   if (sonar.check_timer()) { // This is how you check to see if the ping was received.
     // TODO: Reduce this to integer calculation using ping_result and temperature only
-    
-    // distanceCm = sonar.ping_result / US_ROUNDTRIP_CM;    
 
-    echoPulse = float(sonar.ping_result); // returns time to and from object
-    soundTime = echoPulse / 2; // divide by two because functions returns twice the time needed
+    // distanceCm = sonar.ping_result / US_ROUNDTRIP_CM;
+
+    echoPulseFront = float(sonar.ping_result); // returns time to and from object
+    soundTime = echoPulseFront / 2; // divide by two because functions returns twice the time needed
     distanceCm = (soundVelocity * soundTime) / 10000;
+  }
+}
+
+
+void echoCheckSide() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
+  if (sonarSide.check_timer()) { // This is how you check to see if the ping was received.
+    // TODO: Reduce this to integer calculation using ping_result and temperature only
+
+    // distanceCm = sonar.ping_result / US_ROUNDTRIP_CM;
+
+    echoPulseSide = float(sonarSide.ping_result); // returns time to and from object
+    soundTime = echoPulseSide / 2; // divide by two because functions returns twice the time needed
+    distanceCmSide = (soundVelocity * soundTime) / 10000;
   }
 }
