@@ -137,11 +137,15 @@ const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = -30;  //Start of degree boundary to indicate turning left
 const int LEFT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning left
+const int FORWARD_END_BOUNDARY = 90;  //End of degree boundary to indicate forward
+const int FORWARD_START_BOUNDARY = 27;  //Start of degree boundary indicate forward
+const int STOP_START_BOUNDARY = -27;  //Start of degree boundary to indicate stop
+const int STOP_END_BOUNDARY = -90;  //End of degree boundary to indicate stop
 const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 const int RADIAN_TO_DEGREES = 180 / PI;
 const int alpha = 0.92;  //Complimentary filter coefficient
 
-float totalDegrees, gyroDegrees, xTilt, yTilt, zTilt; //Variables to keep track of filter, gyro, and accel angle measurements
+float totalDegrees, gyroDegrees, totalSpeedDegrees, gyroSpeedDegrees, xTilt, yTilt, zTilt; //Variables to keep track of filter, gyro, and accel angle measurements
 int AcXOffset = 0; int AcYOffset = 0; int AcZOffset = 1860;     //Offset to normalize accell readings to 0 (except AcZ -> gravity=16384)
 int GyXOffset = -110; int GyYOffset = -140; int GyZOffset = -54; //Offset to normalize gyro readings to 0
 int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
@@ -150,15 +154,15 @@ int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;   //Raw readings from the MP6050
 enum controlTurnState {
   left,
   center,
-  right,
+  right
 };
 enum controlSpeedState {
   forward,
-  back,
+  middle,
   stopped
 };
 controlTurnState turnState = center;
-controlSpeedState speedState = forward;
+controlSpeedState speedState = middle;
 
 // LCD Custom Characters
 byte slices[6][8] = {
@@ -185,9 +189,9 @@ void setup() {
   }
   treble.begin(pinPiezoTreble);
   bass.begin(pinPiezoBass);
-  playSong(songTheme);
+  //playSong(songTheme);
   delay(500); // semi-needed delay because the robot will start moving after.
-  Serial.println("F");
+  Serial.println("C");
 }
 
 // Pacman music!
@@ -249,14 +253,19 @@ void countRotate() {
   while (abs(GyY) >= COUNT_ROTATE_THRESHOLD) { //Only loop (count degrees) when the controller is moving
     checkTurnControl();
     checkSpeedControl();
-    gyroDegrees = totalDegrees;   //Set gyro angle to last measured filter angle
+    gyroDegrees = totalDegrees;  //Set gyro angle to last measured filter angle
+    gyroSpeedDegrees = totalSpeedDegrees;
     delay(readDelay);    //Delay for the given duration inbetween reads
     float GyYdps = GyY / FS_ZERO_GYRO_SCALE;   //Convert gyro measurement to degrees per second
+    float GyXdps = GyX / FS_ZERO_GYRO_SCALE;
     processTilt(); //Acquire the degree angle from the accellerometer
     float currDegrees = GyYdps * (millis() - time) / 1000; //Perform approximate integration by multiplying degree per second with the delay
+    float currSpeedDegrees = GyXdps * (millis() - time) / 1000;
     time = millis();  //Time the new duration right after initial sum calculated
     gyroDegrees += currDegrees;  //Iteratively sum the current degrees into total degrees
+    gyroSpeedDegrees += currSpeedDegrees;
     totalDegrees = calcFilterAngle(gyroDegrees, xTilt);  //Calculate the filter angle
+    totalSpeedDegrees = calcFilterAngle(gyroSpeedDegrees, yTilt);
     //Serial.print("Degrees per Second: ");  //Print out the dps reading
     //Serial.println(GyYdps);
     //Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
@@ -266,19 +275,19 @@ void countRotate() {
 }
 
 void checkSpeedControl() {
-  if (AcZ >= STOP_THRESHOLD && speedState != stopped) {
+  //Tilting controller back stops robot
+  if (totalSpeedDegrees >= STOP_END_BOUNDARY && totalSpeedDegrees <= STOP_START_BOUNDARY && speedState != stopped && turnState == center) {
     Serial.println("S");
     speedState = stopped;
   }
-  if (AcY <= FORWARD_THRESHOLD && speedState != forward) {
+  if (totalSpeedDegrees > STOP_START_BOUNDARY && totalSpeedDegrees < FORWARD_END_BOUNDARY && speedState != stopped){
+    //Serial.print("F");
+    //speedState = forward;
+  }
+  if (totalSpeedDegrees >= FORWARD_START_BOUNDARY && totalSpeedDegrees <= FORWARD_END_BOUNDARY && speedState != forward) {
     Serial.println("F");
     speedState = forward;
   }
-  //  if (AcY >= BACKWARD_THRESHOLD && speedState != back){
-  //    Serial.println("B");
-  //    speedState = back;
-  //  }
-
 }
 //Checks the motion control(accell or degree position) of the controller, and make the robot turn or move accordingly.
 void checkTurnControl() {
@@ -286,16 +295,19 @@ void checkTurnControl() {
   if (totalDegrees >= RIGHT_START_BOUNDARY && totalDegrees <= RIGHT_END_BOUNDARY && turnState != right) {
     Serial.println("R");
     turnState = right;
+    speedState = forward;
   }
   //In the center boundary zone? Center the robot while controller in center zone
-  else if (totalDegrees > LEFT_START_BOUNDARY && totalDegrees < RIGHT_START_BOUNDARY && turnState != center ) {
+  else if (totalDegrees > LEFT_START_BOUNDARY && totalDegrees < RIGHT_START_BOUNDARY && turnState != center) {
     Serial.println("C");
     turnState = center;
+    speedState = forward;
   }
   //In the right boundary zone? Turn robot right while controller in right zone.
   else if (totalDegrees >= LEFT_END_BOUNDARY && totalDegrees <= LEFT_START_BOUNDARY  && turnState != left) {
     Serial.println("L");
     turnState = left;
+    speedState = forward;
   }
 }
 
@@ -320,12 +332,12 @@ void calibrateError() {
 //Calculate angle(about x axis) via accelerometer readings
 void processTilt() {
   xTilt = atan2(AcX, sqrt(pow(AcY, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
-  //yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
+  yTilt = atan2(AcY,sqrt(pow(AcX, 2)+ pow(AcZ, 2))) * RADIAN_TO_DEGREES;
   //zTilt = atan2(sqrt(pow(AcX, 2)+ pow(AcY, 2)),AcZ) * RADIAN_TO_DEGREES;
-  //  Serial.print("X Tilt = "); Serial.print(xTilt);
-  //  Serial.print(" | Y Tilt = "); Serial.print(yTilt);
+  //Serial.print("X Tilt = "); Serial.print(xTilt);
+  //Serial.print(" | Y Tilt = "); Serial.print(yTilt);
   //  Serial.print(" | Z Tilt = "); Serial.println(zTilt);
-  //  Serial.println("-----");
+  //Serial.println("-----");
 
 }
 
@@ -433,6 +445,7 @@ void loop() {
   checkTurnControl();
   checkSpeedControl();
   //readAll();
+  //processTilt();
   //printAll();  //Print accellerometer/gyroscope reading values
   //delay(readDelay);
 }
