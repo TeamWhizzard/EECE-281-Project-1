@@ -6,11 +6,11 @@
 #include "WhizzardUltraSensor.h"
 #include "WhizzardLCD.h"
 
-#define MANUAL 0
-#define AUTO 1
+#define MANUAL 1
+#define AUTO 0
 #define MANUAL_SPEED       200 // set speed for manual control
 
-int autonomous = MANUAL; // current robot mode - default manual
+int autonomous = AUTO; // current robot mode - default manual
 int music = 0;        // assigned the values 0, 1, or 2 to play a song depending on the value
 
 // Controller serial commands
@@ -37,6 +37,18 @@ void setup()
   wMotors.init();  
   wSensor.init();
   wLcd.init();
+
+  while (1) {
+    if (Serial.available() > 0) {
+      int mode = Serial.parseInt();
+      if (mode == 0 || mode == 1) {
+        autonomous = mode;
+      }
+     Serial.println(1);
+     Serial.flush();
+     break;
+    }
+  }
 }
 
 /*
@@ -45,6 +57,7 @@ void setup()
  *------------------------------------------------------------------------------------------
 */
 void loop() {
+  
   if (autonomous == AUTO) {
     char newSpeed = wSensor.calculatedApproach(); // calculate distance with ultrasonic sensor
     wLcd.lcdRefresh(wSensor.getDistanceCm()); // display values on LCD display
