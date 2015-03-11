@@ -10,115 +10,15 @@
 #define D5_PIN    11
 #define D6_PIN    12
 #define D7_PIN    13
+#define BLOCK   0xFF // block character
 
-// block character
-#define BLOCK   0xFF
+LiquidCrystal lcd(RS_PIN, E_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN);
 
 //Automatic, Manual Mode states
 #define BUTTON    7
 #define MANUAL    1
 #define AUTO      0
 int lastButtonState;
-
-// initialize the library with the numbers of the interface pins
-LiquidCrystal lcd(RS_PIN, E_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN);
-
-// Pacman Tone Variables
-const int SIXTYFOURTH = 35; // length of sixty-fourth note in ms
-const int NS = 0;  // note space - rest
-
-//The appropriate tones to be played for the theme
-const int theme_melody[] = {
-  // measure one
-  NOTE_B4, NOTE_B4, NOTE_B4, NS,
-  NOTE_B5, NOTE_B5, NOTE_B5, NS,
-  NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
-  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
-
-  NOTE_B5, NS,
-  NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
-  NOTE_DS5, NOTE_DS5, NOTE_DS5, NOTE_DS5,
-  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
-
-  NOTE_C5, NOTE_C5, NOTE_C5, NS,
-  NOTE_C6, NOTE_C6, NOTE_C6, NS,
-  NOTE_G5, NOTE_G5, NOTE_G5, NS,
-  NOTE_E5, NOTE_E5, NOTE_E5, NS,
-
-  NOTE_C6, NS,
-  NOTE_G5, NOTE_G5, NOTE_G5, NOTE_G5, NOTE_G5, NS,
-  NOTE_E5, NOTE_E5, NOTE_E5, NOTE_E5,
-  NOTE_E5, NOTE_E5, NOTE_E5, NS,
-
-  // measure two
-  NOTE_B4, NOTE_B4, NOTE_B4, NS,
-  NOTE_B5, NOTE_B5, NOTE_B5, NS,
-  NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
-  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
-
-  NOTE_B5, NS,
-  NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
-  NOTE_DS5, NOTE_DS5, NOTE_DS5, NOTE_DS5,
-  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
-
-  NOTE_DS5, NS,
-  NOTE_E5, NS,
-  NOTE_F5, NOTE_F5, NOTE_F5, NS,
-  NOTE_F5, NS,
-  NOTE_FS5, NS,
-  NOTE_G5, NOTE_G5, NOTE_G5, NS,
-
-  NOTE_G5, NS,
-  NOTE_GS5, NS,
-  NOTE_A5, NOTE_A5, NOTE_A5, NS,
-  NOTE_B5, NOTE_B5, NOTE_B5, NOTE_B5,
-  NOTE_B5, NOTE_B5, NOTE_B5, NS
-};
-
-//The appropriate bass to be played for the theme
-const int theme_bass[] = {
-  // measure one
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NS,
-  NOTE_B3, NOTE_B3, NOTE_B3, NS,
-
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NS,
-  NOTE_B3, NOTE_B3, NOTE_B3, NS,
-
-  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
-  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
-  NOTE_C3, NOTE_C3, NOTE_C3, NS,
-  NOTE_C4, NOTE_C4, NOTE_C4, NS,
-
-  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
-  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
-  NOTE_C3, NOTE_C3, NOTE_C3, NS,
-  NOTE_C4, NOTE_C4, NOTE_C4, NS,
-
-  // measure two
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NS,
-  NOTE_B3, NOTE_B3, NOTE_B3, NS,
-
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
-  NOTE_B2, NOTE_B2, NOTE_B2, NS,
-  NOTE_B3, NOTE_B3, NOTE_B3, NS,
-
-  NOTE_FS3, NOTE_FS3, NOTE_FS3, NOTE_FS3,
-  NOTE_FS3, NOTE_FS3, NOTE_FS3, NS,
-  NOTE_GS3, NOTE_GS3, NOTE_GS3, NOTE_GS3,
-  NOTE_GS3, NOTE_GS3, NOTE_GS3, NS,
-
-  NOTE_AS3, NOTE_AS3, NOTE_AS3, NOTE_AS3,
-  NOTE_AS3, NOTE_AS3, NOTE_AS3, NS,
-  NOTE_B3, NOTE_B3, NOTE_B3, NOTE_B3,
-  NOTE_B3, NOTE_B3, NOTE_B3, NS
-};
 
 // Initalize the Tone objects to be used for treble and bass
 Tone treble;
@@ -179,22 +79,30 @@ byte slices[6][8] = {
 void setup() {
   Serial.begin(9600);
   pinMode(BUTTON, INPUT);
+  
+  // initialize and wake up i2c bus
   Wire.begin();
   Wire.beginTransmission(MPU);
   Wire.write(0x6B);  // PWR_MGMT_1 register
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
+  
+  // intialize lcd display
   lcd.begin(16, 2);
   lcd.home();
   lcd.clear();
   for (int i = 0; i < 6; i++) { // Create custom LCD characters
     lcd.createChar(i, slices[i]);
   }
+  
+  // intialize piezo buzzers
   treble.begin(pinPiezoTreble);
   bass.begin(pinPiezoBass);
-  //bluetoothInit();
+  
+  // connect to and send state information to robot
+  bluetoothInit();
   lastButtonState = digitalRead(BUTTON);
-  playSong(songTheme);
+  playSong();
 }
 
 // Ensures a Bluetooth Connection. Does not continue until established.
@@ -203,31 +111,23 @@ void bluetoothInit() {
     lastButtonState = digitalRead(BUTTON);
     Serial.println(lastButtonState);
     delay(250);
+    // Robot has confirmed the bluetooth connection, continue with program.
     if (Serial.available() > 0) {
-      Serial.read(); // Robot has confirmed the bluetooth connection, continue with program.
+      Serial.read(); // clears serial buffer
       break;
     }
   }
 }
 
 // Pacman music!
-// Opening theme song on button push
-// Play Death when robot runs into a wall
-// Play Munch when starts going in particular direction
-void playSong (int song) {
-  if (song == songTheme) {
-    int numNotes = sizeof(theme_melody) / sizeof(int);
-    for (int note = 0; note < numNotes; note++) {
-      treble.play(theme_melody[note]);
-      bass.play(theme_bass[note]);
-      delay(SIXTYFOURTH);
-      treble.stop();
-      bass.stop();
-    }
-  }
-  //To be added if needed later (for munching and dying)
-  else if (song == songMunch) {}
-  else { // song == songDeath
+void playSong () {
+  int numNotes = sizeof(theme_melody) / sizeof(int);
+  for (int note = 0; note < numNotes; note++) {
+    treble.play(theme_melody[note]);
+    bass.play(theme_bass[note]);
+    delay(SIXTYFOURTH);
+    treble.stop();
+    bass.stop();
   }
 }
 
@@ -362,33 +262,7 @@ int calcFilterAngle(float gyroAngle, float acelAngle) {
   return alpha * gyroAngle + (1 - alpha) * acelAngle;
 }
 
-
 // LCD FUNCTIONS
-void clearLine(int line) {
-  lcd.setCursor(0, line);
-  lcd.print("                ");
-  delay(20);
-  lcd.setCursor(0, line);
-}
-
-void lcdPrintSpeed(int val) {
-  if (val >= 100)
-    lcd.print(val);
-  else if (val < 100 && val >= 10) {
-    lcd.print(" ");
-    lcd.print(val);
-  }
-  else {
-    lcd.print("  ");
-    lcd.print(val);
-  }
-}
-
-void lcdEncoderVal(int num) {
-  lcd.print("+");
-  lcd.print(num);
-}
-
 void autoModeLCD() {
   while (Serial.available() > 0) {
     int rightSpeed;
@@ -426,6 +300,7 @@ void autoModeLCD() {
 }
 
 void manualModeLCD() {
+  // TODO add more?
   lcd.setCursor(0, 0);
   lcd.print("Manual Mode!");
 }
@@ -438,16 +313,18 @@ void debug() {
 }
 
 void loop() {
+  // check for change in button state
   int newButtonState = digitalRead(BUTTON);
   if (newButtonState != lastButtonState) {
     Serial.println(newButtonState);
     lastButtonState = newButtonState;
   }
+  
   if (lastButtonState == MANUAL) {
-    //countRotate();  //While the controller is moving, record total degrees that the controller turned
+    countRotate();  //While the controller is moving, record total degrees that the controller turned
     manualModeLCD();
-    //checkTurnControl();
-    //checkSpeedControl();
+    checkTurnControl();
+    checkSpeedControl();
   } else {
     autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
   }

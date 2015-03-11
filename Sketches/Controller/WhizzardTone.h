@@ -1,26 +1,3 @@
-/* $Id: Tone.h 113 2010-06-16 20:16:29Z bhagman@roguerobotics.com $
-
-  A Tone Generator Library
-
-  Written by Brett Hagman
-  http://www.roguerobotics.com/
-  bhagman@roguerobotics.com
-
-    This library is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*************************************************/
-
 #ifndef _Tone_h
 #define _Tone_h
 
@@ -120,6 +97,106 @@
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
 
+/*************************************************
+* Pacman functions
+*************************************************/
+
+// Pacman Tone Variables
+#define SIXTYFOURTH 35 // length of sixty-fourth note in ms
+#define NS 0  // note space - rest
+
+//The appropriate tones to be played for the theme
+const int theme_melody[] = {
+  // measure one
+  NOTE_B4, NOTE_B4, NOTE_B4, NS,
+  NOTE_B5, NOTE_B5, NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+
+  NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NOTE_DS5,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+
+  NOTE_C5, NOTE_C5, NOTE_C5, NS,
+  NOTE_C6, NOTE_C6, NOTE_C6, NS,
+  NOTE_G5, NOTE_G5, NOTE_G5, NS,
+  NOTE_E5, NOTE_E5, NOTE_E5, NS,
+
+  NOTE_C6, NS,
+  NOTE_G5, NOTE_G5, NOTE_G5, NOTE_G5, NOTE_G5, NS,
+  NOTE_E5, NOTE_E5, NOTE_E5, NOTE_E5,
+  NOTE_E5, NOTE_E5, NOTE_E5, NS,
+
+  // measure two
+  NOTE_B4, NOTE_B4, NOTE_B4, NS,
+  NOTE_B5, NOTE_B5, NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+
+  NOTE_B5, NS,
+  NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NOTE_FS5, NS,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NOTE_DS5,
+  NOTE_DS5, NOTE_DS5, NOTE_DS5, NS,
+
+  NOTE_DS5, NS,
+  NOTE_E5, NS,
+  NOTE_F5, NOTE_F5, NOTE_F5, NS,
+  NOTE_F5, NS,
+  NOTE_FS5, NS,
+  NOTE_G5, NOTE_G5, NOTE_G5, NS,
+
+  NOTE_G5, NS,
+  NOTE_GS5, NS,
+  NOTE_A5, NOTE_A5, NOTE_A5, NS,
+  NOTE_B5, NOTE_B5, NOTE_B5, NOTE_B5,
+  NOTE_B5, NOTE_B5, NOTE_B5, NS
+};
+
+//The appropriate bass to be played for the theme
+const int theme_bass[] = {
+  // measure one
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NS,
+  NOTE_C4, NOTE_C4, NOTE_C4, NS,
+
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NOTE_C3,
+  NOTE_C3, NOTE_C3, NOTE_C3, NS,
+  NOTE_C4, NOTE_C4, NOTE_C4, NS,
+
+  // measure two
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NOTE_B2,
+  NOTE_B2, NOTE_B2, NOTE_B2, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS,
+
+  NOTE_FS3, NOTE_FS3, NOTE_FS3, NOTE_FS3,
+  NOTE_FS3, NOTE_FS3, NOTE_FS3, NS,
+  NOTE_GS3, NOTE_GS3, NOTE_GS3, NOTE_GS3,
+  NOTE_GS3, NOTE_GS3, NOTE_GS3, NS,
+
+  NOTE_AS3, NOTE_AS3, NOTE_AS3, NOTE_AS3,
+  NOTE_AS3, NOTE_AS3, NOTE_AS3, NS,
+  NOTE_B3, NOTE_B3, NOTE_B3, NOTE_B3,
+  NOTE_B3, NOTE_B3, NOTE_B3, NS
+};
 
 /*************************************************
 * Definitions
@@ -129,7 +206,6 @@ class Tone
 {
   public:
     void begin(uint8_t tonePin);
-    bool isPlaying();
     void play(uint16_t frequency, uint32_t duration = 0);
     void stop();
 

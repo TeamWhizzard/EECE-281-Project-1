@@ -1,26 +1,3 @@
-/* $Id: Tone.cpp 119 2010-07-17 18:56:36Z bhagman@roguerobotics.com $
-
-  A Tone Generator Library
-
-  Written by Brett Hagman
-  http://www.roguerobotics.com/
-  bhagman@roguerobotics.com
-
-    This library is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*************************************************/
-
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <Arduino.h>
@@ -359,42 +336,6 @@ void Tone::stop()
   }
 
   digitalWrite(_pin, 0);
-}
-
-
-bool Tone::isPlaying(void)
-{
-  bool returnvalue = false;
-  
-  switch (_timer)
-  {
-#if !defined(__AVR_ATmega8__)
-    case 0:
-      returnvalue = (TIMSK0 & (1 << OCIE0A));
-      break;
-#endif
-
-    case 1:
-      returnvalue = (TIMSK1 & (1 << OCIE1A));
-      break;
-    case 2:
-      returnvalue = (TIMSK2 & (1 << OCIE2A));
-      break;
-
-#if defined(__AVR_ATmega1280__)
-    case 3:
-      returnvalue = (TIMSK3 & (1 << OCIE3A));
-      break;
-    case 4:
-      returnvalue = (TIMSK4 & (1 << OCIE4A));
-      break;
-    case 5:
-      returnvalue = (TIMSK5 & (1 << OCIE5A));
-      break;
-#endif
-
-  }
-  return returnvalue;
 }
 
 
