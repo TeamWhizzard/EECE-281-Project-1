@@ -58,7 +58,7 @@ PID wallPID(&distanceCm, &motorSpeed, &wallSetpoint, wallKp, wallKi, wallKd, REV
 PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorKd, DIRECT);
 
 void setup() {
-  Serial.begin(115200);                            //init the Serial port to print the data
+  Serial.begin(9600);                            //init the Serial port to print the data
   
   wLcd.init();
   // Motor Setup
@@ -80,6 +80,61 @@ void setup() {
   pinMode(TEMPERATURE_PIN, INPUT);
   temperature = (500 * analogRead(TEMPERATURE_PIN)) >> 10;
   soundVelocity = (331.3 + (0.6 * temperature)); // speed of sound
+  
+  bluetoothInit();
+}
+
+void bluetoothInit() {
+  while (1) {
+    if (Serial.available() > 0) {
+      int mode = Serial.parseInt();
+      //if (mode == 0 || mode == 1) {
+        //autonomous = mode;
+      //}
+     Serial.println("!");
+     Serial.flush();
+     break;
+    }
+  }
+}
+
+void autoModeLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
+    
+    wLcd.makestuff(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+
+    //lcd.rightToLeft();
+    /*lcd.setCursor(6, 0);
+    lcd.print(leftSpeed);
+    lcd.setCursor(16, 0);
+    lcd.print(leftEncoder);
+
+    lcd.leftToRight();
+    lcd.setCursor(0, 1);
+    lcd.print("R: ");
+
+    lcd.rightToLeft();
+    lcd.setCursor(6, 1);
+    lcd.print(rightSpeed);
+    lcd.setCursor(16, 1);
+    lcd.print(rightEncoder);
+  //}*/
+}
+
+// creates a string out of individual motor speeds, encoder values and music selection value
+// to send to the controller via bluetooth
+void createBluetoothMessage(int speedRight, int speedLeft, int encoderRight, int encoderLeft) {
+  String num1 = String(speedRight);
+  String num2 = String(speedLeft);
+  String num3 = String(encoderRight);
+  String num4 = String(encoderLeft);
+
+  String message = num1 + "," + num2 + "," + num3 + "," + num4;
+  bluetoothMessage(message);
+}
+
+// sends a string via bluetooth from the robot to the controller
+void bluetoothMessage(String message) {
+  Serial.print(message); // prints message containing motor speeds and encoder values to the serial monitor
 }
 
 void loop() {
@@ -142,6 +197,8 @@ void loop() {
     turnLeft();
     delay(1000);
   }
+  autoModeLCD(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+  createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 }
 
 void leftISR() {
@@ -191,52 +248,15 @@ void turnLeft() {
  while((rightEncoder < 12)  && (leftEncoder < 10)) {
      //continue;
  }*/
- 
- delay(680);
+ if (leftEncoder < rightEncoder) { // scewed left, less turn
+   delay(650);
+ }else { // scewed right, less turn
+   delay(650);
+ }
  
  analogWrite (5, 0); //PWM Speed Control (0-255)
    analogWrite (6, 0); //PWM Speed Control (0-255)
    
- //rightEncoder = 0;
- //02leftEncoder = 0;
-  // calculate number of ticks (20 per rev) needed to turn 90 degrees
- // 118
- // right goes forward
-   /*analogWrite (5, 127); //PWM Speed Control (0-255)
-   digitalWrite(4, LOW); // HIGH = moves forwards
- 
-   // left goes backward 
-   analogWrite (6, 127); //PWM Speed Control (0-255)
-   digitalWrite(7, HIGH);  // HIGH = moves backward
-
-  delay(600);
- /*int lastRightInter = rightEncoder;
- int lastLeftInter = leftEncoder;
- int countRight = 0;
- int countLeft = 0;
-  
-  wLcd.print(String(countRight) + " " + String(countLeft));
- while((countRight < 500) && (countLeft < 500)) {
-   if (lastRightInter != rightEncoder) {
-     countRight += (rightEncoder - lastRightInter);
-     lastRightInter = rightEncoder;
-   }
-   
-   if (lastLeftInter != leftEncoder) {
-     countLeft += (leftEncoder - lastRightInter);
-     lastRightInter = rightEncoder;
-   }
- }
-   // right goes forward
-   analogWrite (5, 0); //PWM Speed Control (0-255)
-   digitalWrite(4, LOW); // HIGH = moves forwards
- 
-   // left goes backward 
-   analogWrite (6, 0); //PWM Speed Control (0-255)
-   digitalWrite(7, HIGH);  // HIGH = moves backward   
-*/
-  rightEncoder = 0;
-  leftEncoder = 0;
 }
 
 // from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
