@@ -128,15 +128,20 @@ void loop() {
 // and ADD output to rightSpeed to slow the right wheel down.
   motorInput = rightEncoder - leftEncoder;    
   motorPID.Compute(); // updates PID output 
-    boolean motorOutputChanged = (motorOutput != lastMotorOutput);
-    boolean motorSpeedChanged = (motorSpeed != lastMotorSpeed);
-    if (motorOutputChanged || motorSpeedChanged) {
-      leftSpeed = motorSpeed - motorOutput;           
-      rightSpeed = motorSpeed + motorOutput;          
-      forward(leftSpeed, rightSpeed);
-      lastMotorOutput = motorOutput;
-      lastMotorSpeed = motorSpeed;
-    }
+  boolean motorOutputChanged = (motorOutput != lastMotorOutput);
+  boolean motorSpeedChanged = (motorSpeed != lastMotorSpeed);
+  if (motorOutputChanged || motorSpeedChanged) {
+    leftSpeed = motorSpeed - motorOutput;           
+    rightSpeed = motorSpeed + motorOutput;          
+    forward(leftSpeed, rightSpeed);
+    lastMotorOutput = motorOutput;
+    lastMotorSpeed = motorSpeed;
+  }
+  
+  if (distanceCm < (wallSetpoint + 1)) {
+    turnLeft();
+    delay(1000);
+  }
 }
 
 void leftISR() {
@@ -164,12 +169,74 @@ void forward(int leftMotor, int rightMotor) {
   }
   if (rightMotor < 0) {
     analogWrite (5, abs(rightMotor)); //PWM Speed Control (0-255)
-    digitalWrite(4, HIGH); // HIGH = moves forwards
+    digitalWrite(4, HIGH); // HIGH = moves backward
   }
   if (leftMotor < 0) {
     analogWrite (6, abs(leftMotor)); //PWM Speed Control (0-255)
-    digitalWrite(7, HIGH);  // HIGH = moves forwards
+    digitalWrite(7, HIGH);  // HIGH = moves backward
   }
+}
+
+void turnLeft() {
+  analogWrite (5, 127); //PWM Speed Control (0-255)
+   digitalWrite(4, LOW); // HIGH = moves forwards
+ 
+   // left goes backward 
+   analogWrite (6, 127); //PWM Speed Control (0-255)
+   digitalWrite(7, HIGH);  // HIGH = moves backward
+   
+ /*rightEncoder = 0;
+ leftEncoder = 0;
+ 
+ while((rightEncoder < 12)  && (leftEncoder < 10)) {
+     //continue;
+ }*/
+ 
+ delay(680);
+ 
+ analogWrite (5, 0); //PWM Speed Control (0-255)
+   analogWrite (6, 0); //PWM Speed Control (0-255)
+   
+ //rightEncoder = 0;
+ //02leftEncoder = 0;
+  // calculate number of ticks (20 per rev) needed to turn 90 degrees
+ // 118
+ // right goes forward
+   /*analogWrite (5, 127); //PWM Speed Control (0-255)
+   digitalWrite(4, LOW); // HIGH = moves forwards
+ 
+   // left goes backward 
+   analogWrite (6, 127); //PWM Speed Control (0-255)
+   digitalWrite(7, HIGH);  // HIGH = moves backward
+
+  delay(600);
+ /*int lastRightInter = rightEncoder;
+ int lastLeftInter = leftEncoder;
+ int countRight = 0;
+ int countLeft = 0;
+  
+  wLcd.print(String(countRight) + " " + String(countLeft));
+ while((countRight < 500) && (countLeft < 500)) {
+   if (lastRightInter != rightEncoder) {
+     countRight += (rightEncoder - lastRightInter);
+     lastRightInter = rightEncoder;
+   }
+   
+   if (lastLeftInter != leftEncoder) {
+     countLeft += (leftEncoder - lastRightInter);
+     lastRightInter = rightEncoder;
+   }
+ }
+   // right goes forward
+   analogWrite (5, 0); //PWM Speed Control (0-255)
+   digitalWrite(4, LOW); // HIGH = moves forwards
+ 
+   // left goes backward 
+   analogWrite (6, 0); //PWM Speed Control (0-255)
+   digitalWrite(7, HIGH);  // HIGH = moves backward   
+*/
+  rightEncoder = 0;
+  leftEncoder = 0;
 }
 
 // from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
