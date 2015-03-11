@@ -2,7 +2,6 @@
 
 // Standard Libraries
 #include <Wire.h>
-#include "WhizzardMotor.h"
 #include "WhizzardUltraSensor.h"
 #include "WhizzardLCD.h"
 #include "PinChangeInt.h"
@@ -10,14 +9,23 @@
 
 #define MANUAL 1
 #define AUTO 0
-#define MANUAL_SPEED       200 // set speed for manual control
+#define MANUAL_SPEED       127 // set speed for manual control
 
 int autonomous = AUTO; // current robot mode - default manual
 
+// Motor control variables
 volatile unsigned long leftLastInterrupt = 0; // timekeepers for interrupt debounce
 volatile unsigned long rightLastInterrupt = 0;
 volatile unsigned long leftEncoder = 0; // encoder count values
 volatile unsigned long rightEncoder = 0;
+
+double input;      // PID input
+double output = 0; // PID output
+double lastOutput = 1;
+double target = 0; // PID setpoint
+double kp = 20;    // PID term: dependent on present error
+double ki = 5;     // PID term: accumulation of past error
+double kd = 1;     // PID term: prediction of future error based on current rate of change
 
 // Controller serial commands
 const char LEFT = 'L';
@@ -28,9 +36,9 @@ const char STOP = 'S';
 const char BACKUP = 'B';
 
 // new library declarations
-WhizzardMotor wMotors;
 WhizzardUltraSensor wSensor;
 WhizzardLCD wLcd;
+PID myPid(&input, &output, &target, kp, ki, kd, DIRECT);
 
 /*
  *------------------------------------------------------------------------------------------
@@ -42,8 +50,6 @@ void setup()
   Serial.begin(9600);
   attachInterrupt(0, rightEncoderISR, CHANGE);  //init interrupt 0 for digital pin 2
   attachPinChangeInterrupt(11, leftEncoderISR, CHANGE); // Pin 3 produces interference on Pin 2 so we dug up this software excitement.
-  wMotors.init();
-  motorInterruptInit(); 
   wSensor.init();
   wLcd.init();
   bluetoothInit();
@@ -63,6 +69,20 @@ void bluetoothInit() {
   }
 }
 
+
+
+// motor initialization
+void motorInit() {
+  for (int i = 4; i <= 7; i++) { // Motor Pin Assignments
+    pinMode(i, OUTPUT);
+  }
+  // TODO cleanup later, break out consts for things like pin 4 right direction pin
+  // TODO cleanup later, break out consts for things like pin 7 left direction pin  
+  myPid.SetOutputLimits(-127, 127);
+  myPid.SetMode(AUTOMATIC); // pid is driving, to start
+  myPid.SetSampleTime(20); // Recalculate PID every x ms
+}
+
 /*
  *------------------------------------------------------------------------------------------
  *Main Loop Function
@@ -74,11 +94,11 @@ void loop() {
     int newSpeed = wSensor.calculatedApproach(); // calculate distance with ultrasonic sensor
     wLcd.lcdRefresh(wSensor.getDistanceCm()); // display values on LCD display
     if (newSpeed == 0) { // at wall, need to turn left
-      wMotors.brake();
-      wMotors.turn90Left();
-      newSpeed = wSensor.calculatedApproach(); // proceed after turn
+      brake();
+      //turn90Left(); TODO
+      //newSpeed = wSensor.calculatedApproach(); // proceed after turn
     }
-    wMotors.forward(newSpeed);
+    forward(newSpeed);
     //createBluetoothMessage(int speedRight, int speedLeft, int encoderRight, int encoderLeft); // outputs data to controller bluetooth
   } else {  //full manual mode using controller
     while (Serial.available() > 0) {
@@ -91,17 +111,17 @@ void loop() {
 // Controller driving logic interpreter
 void manualDrivingMode(char heading) {
   if (heading == LEFT)
-    wMotors.turnLeft(MANUAL_SPEED);
+    turnLeft(MANUAL_SPEED);
   else if (heading == RIGHT)
-    wMotors.turnRight(MANUAL_SPEED);
+    turnRight(MANUAL_SPEED);
   else if (heading == CENTRE)
-    wMotors.forward(MANUAL_SPEED);
+    forward(MANUAL_SPEED);
   else if (heading == FORWARD)
-    wMotors.forward(MANUAL_SPEED);
+    forward(MANUAL_SPEED);
   else if (heading == STOP)
-    wMotors.brake();
+    brake();
   else if (heading == BACKUP)
-    wMotors.backward(MANUAL_SPEED);
+    backward(MANUAL_SPEED);
 }
 
 /*
@@ -154,39 +174,6 @@ void rightEncoderISR() {
  * Motor Control Functions
  *------------------------------------------------------------------------------------------
  */ //OBJECT ORIENTED!
-
-
-double input;      // PID input
-double output = 0; // PID output
-double lastOutput = 1;
-double target = 0; // PID setpoint
-double kp = 20;    // PID term: dependent on present error
-double ki = 5;     // PID term: accumulation of past error
-double kd = 1;     // PID term: prediction of future error based on current rate of change
-
-PID myPid(&input, &output, &target, kp, ki, kd, DIRECT);
-
-WhizzardMotor::WhizzardMotor() { /*constructor*/ }
-
-// TODO cleanup later, pin 4 right direction pin
-// TODO cleanup later, pin 7 left direction pin
-
-// motor initialization
-void WhizzardMotor::init() {
-  for (int i = 4; i <= 7; i++) { // Motor Pin Assignments
-    pinMode(i, OUTPUT);
-  }
-    
-  myPid.SetOutputLimits(-127, 127);
-  myPid.SetMode(AUTOMATIC); // pid is driving, to start
-  myPid.SetSampleTime(20); // Recalculate PID every x ms
-  
-  // these interrupt bases live in ghost.ino now, because we're
-  // OBJECT ORIENTED!
-  // attachInterrupt(0, rightBaseISR, CHANGE);  //init interrupt 0 for digital pin 2
-  // attachInterrupt(LEFT, leftISR, RISING);   //init interrupt 1 for digital pin 3  
-  // attachPinChangeInterrupt(11, leftBaseISR, CHANGE); // Pin 3 produces interference on Pin 2 so we dug up this software excitement.
-}
 
 // --------PID CONTROL CASE EXAMPLE--------    
 // When the encoder difference goes POSITIVE, the right wheel is moving faster.
