@@ -1,6 +1,10 @@
+#include <Wire.h>
 #include "PID_v1.h"
 #include "PinChangeInt.h"
 #include "NewPing.h"
+#include "WhizzardLCD.h"
+
+WhizzardLCD wLcd;
 
 // Sonar
 #define RANGEFINDER_TRIGGER_PIN  8
@@ -14,8 +18,9 @@ volatile float echoPulse;           // time returned from ultrasonic sensor
 float soundTime;           // intermediate ultrasonic sensor calculation value
 unsigned int pingSpeed = 50; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
 unsigned long pingTimer = 0;     // Holds the next ping time.
-#define wallKp 20 // PID term: dependent on present error
-#define wallKi 5  // PID term: accumulation of past error
+#define wallKp 22 // PID term: dependent on present error
+#define wallKi 50
+// PID term: accumulation of past error
 #define wallKd 1  // PID term: prediction of future error based on current rate of change
 double wallSetpoint = 10;
 
@@ -55,6 +60,7 @@ PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorK
 void setup() {
   Serial.begin(115200);                            //init the Serial port to print the data
   
+  wLcd.init();
   // Motor Setup
   for (int i = 4; i <= 7; i++) {                 // Motor Pin Assignments
     pinMode(i, OUTPUT);
@@ -111,8 +117,9 @@ void loop() {
     pingTimer += pingSpeed;      // Set the next ping time.
     sonar.ping_timer(echoCheck); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
   }
-  
-    motorSpeed = map(distanceCm, 3, 200, 50, 127);
+    wLcd.clearLine(0);
+    wLcd.print(String(distanceCm));
+    motorSpeed = map(distanceCm, 3, 200, 50, 300); // last value from 127 
   
 // --------PID CONTROL CASE EXAMPLE--------    
 // When the encoder difference goes POSITIVE, the right wheel is moving faster.
@@ -121,16 +128,15 @@ void loop() {
 // and ADD output to rightSpeed to slow the right wheel down.
   motorInput = rightEncoder - leftEncoder;    
   motorPID.Compute(); // updates PID output 
-  boolean motorOutputChanged = (motorOutput != lastMotorOutput);
-  boolean motorSpeedChanged = (motorSpeed != lastMotorSpeed);
-  if (motorOutputChanged || motorSpeedChanged) {
-    leftSpeed = motorSpeed - motorOutput;           
-    rightSpeed = motorSpeed + motorOutput;          
-    forward(leftSpeed, rightSpeed);
-    lastMotorOutput = motorOutput;
-    lastMotorSpeed = motorSpeed;
-  }
-
+    boolean motorOutputChanged = (motorOutput != lastMotorOutput);
+    boolean motorSpeedChanged = (motorSpeed != lastMotorSpeed);
+    if (motorOutputChanged || motorSpeedChanged) {
+      leftSpeed = motorSpeed - motorOutput;           
+      rightSpeed = motorSpeed + motorOutput;          
+      forward(leftSpeed, rightSpeed);
+      lastMotorOutput = motorOutput;
+      lastMotorSpeed = motorSpeed;
+    }
 }
 
 void leftISR() {
@@ -148,10 +154,22 @@ void rightISR() {
 }
 
 void forward(int leftMotor, int rightMotor) {
-  analogWrite (5, rightMotor); //PWM Speed Control (0-255)
-  digitalWrite(4, LOW); // HIGH = moves forwards
-  analogWrite (6, leftMotor); //PWM Speed Control (0-255)
-  digitalWrite(7, LOW);  // HIGH = moves forwards
+  if (rightMotor >= 0) {
+    analogWrite (5, rightMotor); //PWM Speed Control (0-255)
+    digitalWrite(4, LOW); // HIGH = moves forwards
+  }
+  if (leftMotor >= 0) {
+    analogWrite (6, leftMotor); //PWM Speed Control (0-255)
+    digitalWrite(7, LOW);  // HIGH = moves forwards
+  }
+  if (rightMotor < 0) {
+    analogWrite (5, abs(rightMotor)); //PWM Speed Control (0-255)
+    digitalWrite(4, HIGH); // HIGH = moves forwards
+  }
+  if (leftMotor < 0) {
+    analogWrite (6, abs(leftMotor)); //PWM Speed Control (0-255)
+    digitalWrite(7, HIGH);  // HIGH = moves forwards
+  }
 }
 
 // from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch

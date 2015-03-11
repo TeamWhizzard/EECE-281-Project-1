@@ -187,9 +187,14 @@ void brake() {
 }
 
 void forward(int velocity) {
-  digitalWrite(4, LOW); // LOW = moves forward
-  digitalWrite(7, LOW); // LOW = moves forward
-  drive(velocity);  
+  if (velocity >= 0) {
+    digitalWrite(4, LOW); // LOW = moves forward
+    digitalWrite(7, LOW); // LOW = moves forward
+  } else {
+    digitalWrite(4, HIGH); // HIGH = moves backward
+    digitalWrite(7, HIGH); // HIGH = moves backward
+  }
+  drive(abs(velocity));  
 }
 
 void backward(int velocity) {
