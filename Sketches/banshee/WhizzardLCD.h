@@ -23,6 +23,8 @@ class WhizzardLCD {
   void init();
   void lcdRefresh(float distance);
   void clearLine(int line);
+  void lcdDisplay(float distance);
+  void lcdDisplay2(String message);
  private:
   // array of custom characters that each represent a different amount of lines filled
   // in a single block on an lcd. Broken into 5 segments
@@ -36,9 +38,6 @@ class WhizzardLCD {
   };
   
   int distanceLast;     // keeps track of last distance measurement
-  
-  
-  void lcdDisplay(float distance);
   void distanceLive(int distanceNew, float distanceCm);
 };
 

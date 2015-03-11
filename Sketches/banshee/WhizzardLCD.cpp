@@ -60,6 +60,11 @@ void WhizzardLCD::lcdDisplay(float distance) {
   }
 }
 
+void WhizzardLCD::lcdDisplay2(String message) {
+  lcd.setCursor(0,1);
+  lcd.print(message);
+}
+
 // distanceLive() - displays bar representation of most recent distance reading on bottom line of LCD display
 void WhizzardLCD::distanceLive(int distanceNew, float distanceCm) {
   // graphs values 13cm and less
