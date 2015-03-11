@@ -8,7 +8,7 @@
 #define RANGEFINDER_ECHO_PIN A3
 #define TEMPERATURE_PIN A2
 
-#define MAX_SPEED          350 // maximum PWM motor speed
+#define MAX_SPEED          127 // maximum PWM motor speed
 #define MAX_DISTANCE       380 // maximum reading distance of ultrasonic sensor in cm
 
 class WhizzardUltraSensor { 
@@ -23,7 +23,7 @@ class WhizzardUltraSensor {
  private:
    // private functions/ constants
    // collision detection threshold approach speeds and distances
-   char approachWallSpeeds[6]   = {300, 200, 150, 100, 50, 0};
+   char approachWallSpeeds[6]   = {127, 100, 75, 50, 25, 0};
    int approachWallThreshold[6] = {50,  35,  25,  15,  10, 3};
    
    float echoPulse;      // time returned from ultrasonic sensor

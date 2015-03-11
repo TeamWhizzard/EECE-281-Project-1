@@ -20,10 +20,10 @@ class WhizzardMotor {
 
    void init();
    void brake();
-   void forward(int left, int right);
-   void backward(int left, int right);
-   void turnRight(int left, int right);
-   void turnLeft(int left, int right);
+   void forward(int velocity);
+   void backward(int velocity);
+   void turnRight(int velocity);
+   void turnLeft(int velocity);
    void turn90Left();
      
   private:
