@@ -2,8 +2,6 @@
 #include "PID_v1.h"
 #include "PinChangeInt.h"
 
-PID myPid(&input, &output, &target, kp, ki, kd, DIRECT);
-
 double input;      // PID input
 double output = 0; // PID output
 double lastOutput = 1;
@@ -11,6 +9,8 @@ double target = 0; // PID setpoint
 double kp = 20;    // PID term: dependent on present error
 double ki = 5;     // PID term: accumulation of past error
 double kd = 1;     // PID term: prediction of future error based on current rate of change
+
+PID myPid(&input, &output, &target, kp, ki, kd, DIRECT);
 
 volatile unsigned long leftLastTime = 0;
 volatile unsigned long rightLastTime = 0;
@@ -33,7 +33,7 @@ void WhizzardMotor::init() {
   myPid.SetMode(AUTOMATIC); // pid is driving, to start
   myPid.SetSampleTime(20); // Recalculate PID every x ms
   
-  attachInterrupt(RIGHT, rightISR, CHANGE);  //init interrupt 0 for digital pin 2
+  attachInterrupt(0, rightISR, CHANGE);  //init interrupt 0 for digital pin 2
   //attachInterrupt(LEFT, leftISR, RISING);   //init interrupt 1 for digital pin 3  
   attachPinChangeInterrupt(11, leftISR, CHANGE); // Pin 3 produces interference on Pin 2 so we dug up this software excitement.
 
@@ -47,7 +47,7 @@ void WhizzardMotor::init() {
 
 // stops both motors
 void WhizzardMotor::brake() {
-  drive(0,0);
+  drive(0);
 }
 
 void WhizzardMotor::forward(int velocity) {

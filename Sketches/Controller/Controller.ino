@@ -11,23 +11,19 @@
 #define D6_PIN    12
 #define D7_PIN    13
 
-//Automatic, Manual Mode
+// block character
+#define BLOCK   0xFF
+
+//Automatic, Manual Mode states
 #define BUTTON    7
 #define MANUAL    1
 #define AUTO      0
 int lastButtonState;
 
-// block character
-#define BLOCK   0xFF
-
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(RS_PIN, E_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN);
 
 // Pacman Tone Variables
-// Variables to relate songs to a number
-const int songTheme = 0;
-const int songMunch = 1;
-const int songDeath = 2;
 const int SIXTYFOURTH = 35; // length of sixty-fourth note in ms
 const int NS = 0;  // note space - rest
 

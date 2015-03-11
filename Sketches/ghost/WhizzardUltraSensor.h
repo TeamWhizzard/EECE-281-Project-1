@@ -17,7 +17,7 @@ class WhizzardUltraSensor {
   WhizzardUltraSensor();
   
   void init();
-  char calculatedApproach();
+  int calculatedApproach();
   float getDistanceCm();
 
  private:

@@ -33,7 +33,7 @@ WhizzardLCD wLcd;
 void setup()
 {
   Serial.begin(9600);
-  //wMotors.init();  
+  wMotors.init();  
   wSensor.init();
   wLcd.init();
   bluetoothInit();
@@ -60,38 +60,38 @@ void bluetoothInit() {
 */
 void loop() {
   
-  /*if (autonomous == AUTO) {
-    char newSpeed = wSensor.calculatedApproach(); // calculate distance with ultrasonic sensor
+  if (autonomous == AUTO) {
+    int newSpeed = wSensor.calculatedApproach(); // calculate distance with ultrasonic sensor
     wLcd.lcdRefresh(wSensor.getDistanceCm()); // display values on LCD display
     if (newSpeed == 0) { // at wall, need to turn left
       wMotors.brake();
       wMotors.turn90Left();
       newSpeed = wSensor.calculatedApproach(); // proceed after turn
     }
-    wMotors.forward(newSpeed, newSpeed);
-    stringCreate(a, b, encoderRight, encoderLeft, music); // outputs data to controller bluetooth
+    wMotors.forward(newSpeed);
+    //createBluetoothMessage(int speedRight, int speedLeft, int encoderRight, int encoderLeft); // outputs data to controller bluetooth
   } else {  //full manual mode using controller
     while (Serial.available() > 0) {
       char heading = Serial.read();
       manualDrivingMode(heading);
     }
-  }*/
+  }
 }
 
 // Controller driving logic interpreter
 void manualDrivingMode(char heading) {
   if (heading == LEFT)
-    wMotors.turnLeft(MANUAL_SPEED, MANUAL_SPEED);
+    wMotors.turnLeft(MANUAL_SPEED);
   else if (heading == RIGHT)
-    wMotors.turnRight(MANUAL_SPEED, MANUAL_SPEED);
+    wMotors.turnRight(MANUAL_SPEED);
   else if (heading == CENTRE)
-    wMotors.forward(MANUAL_SPEED, MANUAL_SPEED);
+    wMotors.forward(MANUAL_SPEED);
   else if (heading == FORWARD)
-    wMotors.forward(MANUAL_SPEED, MANUAL_SPEED);
+    wMotors.forward(MANUAL_SPEED);
   else if (heading == STOP)
     wMotors.brake();
   else if (heading == BACKUP)
-    wMotors.backward(MANUAL_SPEED, MANUAL_SPEED);
+    wMotors.backward(MANUAL_SPEED);
 }
 
 /*

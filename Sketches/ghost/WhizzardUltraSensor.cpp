@@ -20,9 +20,9 @@ void WhizzardUltraSensor::init() {
 }
 
 // Calculate the speed to travel based on distance from object.
-char WhizzardUltraSensor::calculatedApproach() {
+int WhizzardUltraSensor::calculatedApproach() {
   reportDistance();
-  char calculatedSpeed = MAX_SPEED;
+  int calculatedSpeed = MAX_SPEED;
   /* a distance measurement of 0 is returned when the distance
      to an object exceeds the limit of the range finder (~3.8m) */
   if (distanceCm != 0 || distanceCm <= approachWallThreshold[0]) {

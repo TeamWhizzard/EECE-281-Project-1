@@ -25,7 +25,7 @@ class WhizzardMotor {
    void turnRight(int velocity);
    void turnLeft(int velocity);
    void turn90Left();
-     
+   void drive(int velocity);
   private:
    // private functions/ variables
 };
