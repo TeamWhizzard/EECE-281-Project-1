@@ -19,42 +19,6 @@ void WhizzardLCD::init() {
   //}
 }
 
-void WhizzardLCD::makestuff (int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
-  /*while (Serial.available() > 0) {
-    int rightSpeed;
-    int leftSpeed;
-    int rightEncoder;
-    int leftEncoder;
-
-    rightSpeed = Serial.parseInt();
-    leftSpeed = Serial.parseInt();
-    rightEncoder = Serial.parseInt();
-    leftEncoder = Serial.parseInt();*/
-
-    lcd.clear();
-
-    lcd.leftToRight();
-    lcd.setCursor(0, 0);
-    lcd.print("L: ");
-
-    lcd.rightToLeft();
-    lcd.setCursor(6, 0);
-    lcd.print(leftSpeed);
-    lcd.setCursor(16, 0);
-    lcd.print(leftEncoder);
-
-    lcd.leftToRight();
-    lcd.setCursor(0, 1);
-    lcd.print("R: ");
-
-    lcd.rightToLeft();
-    lcd.setCursor(6, 1);
-    lcd.print(rightSpeed);
-    lcd.setCursor(16, 1);
-    lcd.print(rightEncoder);
-  //}
-}
-
 /*
  *------------------------------------------------------------------------------------------
  *LCD Control Functions

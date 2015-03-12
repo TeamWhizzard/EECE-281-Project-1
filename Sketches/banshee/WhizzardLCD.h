@@ -18,8 +18,6 @@
 
 class WhizzardLCD {
  public:
-  void makestuff(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder);
-  
   WhizzardLCD();
   void print(String line);
   void init();

@@ -64,7 +64,7 @@ PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorK
 
 void setup() {
   Serial.begin(9600);                            //init the Serial port to print the data
-
+  
   wLcd.init();
   // Motor Setup
   for (int i = 4; i <= 7; i++) {                 // Motor Pin Assignments
@@ -206,8 +206,9 @@ void loop() {
     turnLeft();
     delay(500);
   }
-  autoModeLCD(rightSpeed, leftSpeed, distanceCm, distanceCmSide);
-  createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+
+  //autoModeLCD(rightSpeed, leftSpeed, distanceCm, distanceCmSide);
+  //createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 }
 
 void leftISR() {
@@ -298,6 +299,65 @@ void turnLeft() {
        lastMotorSpeed = motorSpeed;
      }
    }*/
+=======
+   digitalWrite(4, LOW); // HIGH = moves forwards
+ 
+   // left goes backward 
+   analogWrite (6, 127); //PWM Speed Control (0-255)
+   digitalWrite(7, HIGH);  // HIGH = moves backward
+   
+ /*rightEncoder = 0;
+ leftEncoder = 0;
+ 
+ while((rightEncoder < 12)  && (leftEncoder < 10)) {
+     //continue;
+ }*/
+ 
+ delay(680);
+ 
+ analogWrite (5, 0); //PWM Speed Control (0-255)
+   analogWrite (6, 0); //PWM Speed Control (0-255)
+   
+ //rightEncoder = 0;
+ //02leftEncoder = 0;
+  // calculate number of ticks (20 per rev) needed to turn 90 degrees
+ // 118
+ // right goes forward
+   /*analogWrite (5, 127); //PWM Speed Control (0-255)
+   digitalWrite(4, LOW); // HIGH = moves forwards
+ 
+   // left goes backward 
+   analogWrite (6, 127); //PWM Speed Control (0-255)
+   digitalWrite(7, HIGH);  // HIGH = moves backward
+
+  delay(600);
+ /*int lastRightInter = rightEncoder;
+ int lastLeftInter = leftEncoder;
+ int countRight = 0;
+ int countLeft = 0;
+  
+  wLcd.print(String(countRight) + " " + String(countLeft));
+ while((countRight < 500) && (countLeft < 500)) {
+   if (lastRightInter != rightEncoder) {
+     countRight += (rightEncoder - lastRightInter);
+     lastRightInter = rightEncoder;
+   }
+   
+   if (lastLeftInter != leftEncoder) {
+     countLeft += (leftEncoder - lastRightInter);
+     lastRightInter = rightEncoder;
+   }
+ }
+   // right goes forward
+   analogWrite (5, 0); //PWM Speed Control (0-255)
+   digitalWrite(4, LOW); // HIGH = moves forwards
+ 
+   // left goes backward 
+   analogWrite (6, 0); //PWM Speed Control (0-255)
+   digitalWrite(7, HIGH);  // HIGH = moves backward   
+*/
+  rightEncoder = 0;
+  leftEncoder = 0;
 }
 
 // from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
