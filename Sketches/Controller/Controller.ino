@@ -31,18 +31,21 @@ const int pinPiezoBass = 6;
 // MP6050 Gyro/Accell Tracking Variables
 const int MPU = 0x68; // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
-const int FORWARD_THRESHOLD = -8600;   //Acceleration (scaled) threshold value to speed up
-const int BACKWARD_THRESHOLD = 10000;  //Accereration (scaled) threshold value to slow down
-const int STOP_THRESHOLD = 21000;
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
 const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = -30;  //Start of degree boundary to indicate turning left
 const int LEFT_END_BOUNDARY = -90;  //End of degree boundary to indicate turning left
-const int FORWARD_END_BOUNDARY = 90;  //End of degree boundary to indicate forward
-const int FORWARD_START_BOUNDARY = 27;  //Start of degree boundary indicate forward
-const int STOP_START_BOUNDARY = -27;  //Start of degree boundary to indicate stop
-const int STOP_END_BOUNDARY = -90;  //End of degree boundary to indicate stop
+const int FORWARD3_END_BOUNDARY = 90;
+const int FORWARD3_START_BOUNDARY = 65;
+const int FORWARD2_END_BOUNDARY = 55;
+const int FORWARD2_START_BOUNDARY = 45;
+const int FORWARD_END_BOUNDARY = 35;  //End of degree boundary to indicate forward
+const int FORWARD_START_BOUNDARY = 25;  //Start of degree boundary indicate forward
+const int STOP_START_BOUNDARY = -25;  //Start of degree boundary to indicate stop
+const int STOP_END_BOUNDARY = -45;
+const int REVERSE_START_BOUNDARY = -55;
+const int REVERSE_END_BOUNDARY = -90;
 const int FS_ZERO_GYRO_SCALE = 131;  //Scale factor of angular velocity readings
 const int RADIAN_TO_DEGREES = 180 / PI;
 const int alpha = 0.92;  //Complimentary filter coefficient
@@ -60,8 +63,14 @@ enum controlTurnState {
 };
 enum controlSpeedState {
   forward,
+  forward2,
+  forward3,
   middle,
-  stopped
+  stopped,
+  reverse,
+  reverse2,
+  reverse3
+  
 };
 controlTurnState turnState = center;
 controlSpeedState speedState = middle;
@@ -100,8 +109,8 @@ void setup() {
   bass.begin(pinPiezoBass);
   
   // connect to and send state information to robot
-  bluetoothInit();
-  lastButtonState = digitalRead(BUTTON);
+//  bluetoothInit();
+//  lastButtonState = digitalRead(BUTTON);
   playSong();
 }
 
@@ -169,6 +178,7 @@ void countRotate() {
   while (abs(GyY) >= COUNT_ROTATE_THRESHOLD) { //Only loop (count degrees) when the controller is moving
     checkTurnControl();
     checkSpeedControl();
+    manualModeLCD();
     gyroDegrees = totalDegrees;  //Set gyro angle to last measured filter angle
     gyroSpeedDegrees = totalSpeedDegrees;
     delay(readDelay);    //Delay for the given duration inbetween reads
@@ -191,18 +201,32 @@ void countRotate() {
 }
 
 void checkSpeedControl() {
-  //Tilting controller back stops robot
-  if (totalSpeedDegrees >= STOP_END_BOUNDARY && totalSpeedDegrees <= STOP_START_BOUNDARY && speedState != stopped && turnState == center) {
+  //Tilting controller back stops robot. Tilting to center and tilting back causes robot to go in reverse proportionally to tilt
+  
+  if (totalSpeedDegrees >= STOP_END_BOUNDARY && totalSpeedDegrees <= STOP_START_BOUNDARY && speedState != stopped && turnState == center){
     Serial.println("S");
     speedState = stopped;
   }
-  if (totalSpeedDegrees > STOP_START_BOUNDARY && totalSpeedDegrees < FORWARD_END_BOUNDARY && speedState != stopped) {
-    //Serial.print("F");
-    //speedState = forward;
+  
+  else if (totalSpeedDegrees >= REVERSE_END_BOUNDARY && totalSpeedDegrees <= REVERSE_START_BOUNDARY && speedState != reverse && turnState == center) {
+    Serial.println("B");
+    speedState = reverse;
   }
+  
+  //if (totalSpeedDegrees > STOP_START_BOUNDARY && totalSpeedDegrees < FORWARD_END_BOUNDARY && speedState != stopped) {
+  //}
+  
   if (totalSpeedDegrees >= FORWARD_START_BOUNDARY && totalSpeedDegrees <= FORWARD_END_BOUNDARY && speedState != forward) {
     Serial.println("F");
     speedState = forward;
+  }
+  else if (totalSpeedDegrees >= FORWARD2_START_BOUNDARY && totalSpeedDegrees <= FORWARD2_END_BOUNDARY && speedState != forward2) {
+    Serial.println("5");
+    speedState = forward2;
+  }
+  else if (totalSpeedDegrees >= FORWARD3_START_BOUNDARY && totalSpeedDegrees <= FORWARD3_END_BOUNDARY && speedState != forward3) {
+    Serial.println("6");
+    speedState = forward3;
   }
 }
 //Checks the motion control(accell or degree position) of the controller, and make the robot turn or move accordingly.
@@ -299,10 +323,32 @@ void autoModeLCD() {
   }
 }
 
+//clears a given line on the lcd
+void clearLine(int line) {
+  lcd.setCursor(0, line);
+  lcd.print("                ");
+  lcd.setCursor(0, line);
+}
+
 void manualModeLCD() {
   // TODO add more?
   lcd.setCursor(0, 0);
   lcd.print("Manual Mode!");
+  clearLine(1);
+  if (turnState == left)
+    lcd.print("Rotating Left");
+  else if (turnState == right)
+    lcd.print("Rotating Right");
+  else if (speedState == forward)
+    lcd.print("Forward at 40%");
+  else if (speedState == forward2)
+    lcd.print("Forward at 70%");
+  else if (speedState == forward3)
+    lcd.print("Forward at 100%");
+  else if (speedState == stopped)
+    lcd.print("Stopped");
+  else if (speedState == reverse)
+    lcd.print("Backing up");
 }
 
 void debug() {
@@ -314,19 +360,18 @@ void debug() {
 
 void loop() {
   // check for change in button state
-  int newButtonState = digitalRead(BUTTON);
-  if (newButtonState != lastButtonState) {
-    Serial.println(newButtonState);
-    lastButtonState = newButtonState;
-  }
+//  int newButtonState = digitalRead(BUTTON);
+//  if (newButtonState != lastButtonState) {
+//    Serial.println(newButtonState);
+//    lastButtonState = newButtonState;
+//  }
   
-  if (lastButtonState == MANUAL) {
+//  if (lastButtonState == MANUAL) {
     countRotate();  //While the controller is moving, record total degrees that the controller turned
     manualModeLCD();
     checkTurnControl();
     checkSpeedControl();
-  } else {
-    autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
-  }
+//  } else {
+//    autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
+//  }
 }
-
