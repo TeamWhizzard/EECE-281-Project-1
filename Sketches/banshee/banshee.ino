@@ -49,7 +49,7 @@ double motorInput;
 double motorOutput = 0;
 double lastMotorOutput = 1;
 double motorSetpoint = 0; // PID Setpoint
-
+int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;
 // TODO: comment out to save memory
 unsigned long printTimer = 0;
 
@@ -233,7 +233,50 @@ void forward(int leftMotor, int rightMotor) {
     digitalWrite(7, HIGH);  // HIGH = moves backward
   }
 }
+//Updates all acceleration and angular velocity readings
+void readAll() {
+  Wire.beginTransmission(MPU);
+  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU, 14, true); // request a total of 14 registers
+  AcX = Wire.read() << 8 | Wire.read(); //  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
+  AcY = Wire.read() << 8 | Wire.read(); // // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+  AcZ = Wire.read() << 8 | Wire.read(); // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+  Tmp = Wire.read() << 8 | Wire.read(); // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
+  GyX = Wire.read() << 8 | Wire.read(); // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
+  GyY = Wire.read() << 8 | Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
+  GyZ = Wire.read() << 8 | Wire.read() + GyZOffset; // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
+}
+
+//Prints all the acceleration and angular velocity readings
+void printAll() {
+  //Print out the acceleration values for the x, y, z axises (scaled by a factor of G in m/s^2)
+  Serial.print("AcX = "); Serial.print(AcX);
+  Serial.print(" | AcY = "); Serial.print(AcY);
+  Serial.print(" | AcZ = "); Serial.print(AcZ);
+  //equation for temperature in degrees C from datasheet
+  Serial.print(" | Tmp = "); Serial.print(Tmp / 340.00 + 36.53);
+  //Print out the angular velocity values about the x, y, z axises (scaled by a factor in degrees/second)
+  Serial.print(" | GyX = "); Serial.print(GyX);
+  Serial.print(" | GyY = "); Serial.print(GyY);
+  Serial.print(" | GyZ = "); Serial.println(GyZ);
+}
+
+void turnGyroLeft(){
+  readAll();
+  float time = millis();
+  float totalDegrees;
+  while (abs(degrees) >= 87){
+    delay(150);
+    float GyZdps = GyZ/131;
+    float currDegrees = GyZdps * (millis() - time) / 1000;
+    time = millis();
+    totalDegrees += currDegrees;
+    readAll();
+  }
+
+}
 void turnLeft() {
   analogWrite (5, 127); //PWM Speed Control (0-255)
    digitalWrite(4, LOW); // HIGH = moves forwards
