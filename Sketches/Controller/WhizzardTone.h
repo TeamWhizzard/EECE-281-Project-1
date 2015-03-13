@@ -198,17 +198,6 @@ const int theme_bass[] = {
   NOTE_B3, NOTE_B3, NOTE_B3, NS
 };
 
-
-const int theme_change[] = {
-  NOTE_C4, NOTE_C4, NOTE_C4, NOTE_C4,
-  NOTE_C4, NOTE_C4, NOTE_C4, NS,
-  
-  NOTE_E4, NOTE_E4, NOTE_E4, NOTE_E4,
-  NOTE_E4, NOTE_E4, NOTE_E4, NS,
-  
-  NOTE_C5, NOTE_C5, NOTE_C5, NOTE_C5,
-  NOTE_C5, NOTE_C5, NOTE_C5, NS
-};
 /*************************************************
 * Definitions
 *************************************************/

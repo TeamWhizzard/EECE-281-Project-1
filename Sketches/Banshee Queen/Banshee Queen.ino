@@ -5,9 +5,9 @@
 #include "LiquidCrystal_I2C.h"
 
 // Robot Mode Constants / Declarations
-const char REMOTE = '1'; // manual mode controller signal
-const char AUTO = '0';   // automatic mode controller signal
-char recieved;         // current mode state or command recieved from controller
+#define MANUAL    1 // manual mode controller signal
+#define AUTO      0 // automatic mode controller signal
+int roboMode;       // current mode state
 
 // Ultrasonic Sensor Constants / Declaration
 #define RANGEFINDER_TRIGGER_PIN  8
@@ -123,18 +123,12 @@ void setup() {
   lcd.clear();
   lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
   lcd.setBacklight(HIGH);
-  
-  lcd.setCursor(0,0);
-  lcd.print("<<< HEY IT'S >>>");
-  lcd.setCursor(0,1);
-  lcd.print("<<<< PACMAN >>>>");
-  
-  bluetoothInit(); // wait to pair  robot Bluetooth with controller
-  delay(5000); // approx length of pacman theme song
-  
-   // Begin Interrupt Counts
+
+  // Begin Interrupt Counts
   attachInterrupt(0, rightISR, CHANGE);  //init hardware interrupt 0 for digital pin 2 
   attachPinChangeInterrupt(11, leftISR, CHANGE); // intialize software interrupt - motor noise caused problems with hardware interrupt 1
+  
+  bluetoothInit(); // wait to pair  robot Bluetooth with controller
 }
 
 /*
@@ -145,11 +139,8 @@ void setup() {
 void bluetoothInit() {
   while (1) { // executes until controller message is detected
     if (Serial.available() > 0) {
-      recieved = Serial.read();
       Serial.println("!"); // reply to controller
-      while (Serial.available() > 0) {
-        Serial.read(); // clear serial buffer for future commands 
-      }
+      Serial.flush(); // clear serial buffer for future commands
       break;
     }
   }
@@ -185,44 +176,12 @@ void rightISR() {
 *------------------------------------------------------------------------------------------
 */
 void loop() {
-  if (recieved == AUTO) { // enter automatic mode
-    brake(); // stop wheels in case robot is driving in last state of remote mode
-    delay(2000); // mode switch delay
-    
-    // reset encoders upon entering manual mode
-    leftEncoder = 0;
-    rightEncoder = 0;
-        
-    while (recieved != REMOTE) {  // while new mode switch command has not been recieved
-      automaticDrivingMode();
-      
-      if (Serial.available() > 0) {
-        recieved = Serial.read();
-        Serial.print("!");
-      }
-    }
-  } else { // enter manual mode
-    // manual LCD
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("//MANUAL MODE!//");
-    lcd.setCursor(0,1);
-    lcd.print("////////////////");
-  
-    brake(); // in case robot is driving in last state of automatic mode
-    delay(2000); // mode switch delay
-    
-    while(1) { // loop until mode switch command is recieved
-      if (Serial.available() > 0) { // if message has been recieved
-        recieved = Serial.read();
-        
-        if (recieved != AUTO) { // execute manual drive function
-          manualDrivingMode(recieved);
-        } else { // switch to automatic mode
-          Serial.print("!"); // send confirmation to controller
-          break;
-        }
-      }
+  if (roboMode == AUTO) {
+    automaticDrivingMode();
+  } else { // full manual mode using controller
+    while (Serial.available() > 0) {
+      char heading = Serial.read();
+      manualDrivingMode(heading);
     }
   }
 }
@@ -273,20 +232,16 @@ void automaticDrivingMode() {
     lastMotorSpeed = motorSpeed;
   }
   
-  // turn left when near an obstacle
+  // turn left when near approaching object
   if ((distanceCm < TURNTHRESH) && (distanceCm != 0)) {
     turnLeftAuto();
     
-    unsigned long waitTime = millis();
+    int waitTime = millis();
     while (millis() < (waitTime + 1000)) {
       readUltrasonic();
     }
     
-    if (distanceCm == 0) {
-      distanceCm = MAX_DISTANCE;
-    }
-    
-  }
+  } 
 }
 
 /*
@@ -440,7 +395,7 @@ void createAutoBluetoothMessage(int mode, int vel) {
 *------------------------------------------------------------------------------------------
 */ 
 void demoLCD(int dir) { // 1 forward, 0 left
-  if ((printTimer + 500) < millis()) { // delay print for readability
+  if ((printTimer + 200) > millis()) { // delay print for readability
     lcd.clear();
     
     if (dir == 1) {
