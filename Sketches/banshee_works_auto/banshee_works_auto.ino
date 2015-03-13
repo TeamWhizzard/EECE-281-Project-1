@@ -2,8 +2,12 @@
 #include "PID_v1.h"
 #include "PinChangeInt.h"
 #include "NewPing.h"
-#include "LCD.h"
 #include "LiquidCrystal_I2C.h"
+
+// Robot Mode Constants / Declarations
+#define MANUAL    1 // manual mode controller signal
+#define AUTO      0 // automatic mode controller signal
+int roboMode;       // current mode state
 
 // Ultrasonic Sensor Constants / Declaration
 #define RANGEFINDER_TRIGGER_PIN  8
@@ -49,6 +53,23 @@ volatile unsigned long rightLastTime = 0; // interrupt timer - for debouncing
 volatile long leftEncoder = 0;            // left encoder count
 volatile long rightEncoder = 0;           // right encoder count
 
+// Manual Mode Constants / Declarations
+#define MAX_SPEED 350   // maximum PWM speed
+#define FIRST_GEAR 200  // set speed for manual control speed 1
+#define SECOND_GEAR 250 // set speed for manual control speed 2
+#define THIRD_GEAR 350  // set speed for manual control speed 3
+#define TURN_SPEED 200  // set speed for turning while in manual control
+
+// Controller serial commands
+const char LEFT = 'L';
+const char RIGHT = 'R';
+const char CENTRE = 'C';
+const char FORWARD = 'F';
+const char FORWARD_SPEED_2 = '6';
+const char FORWARD_SPEED_1 = '5';
+const char STOP = 'S';
+const char BACKUP = 'B';
+
 // Testing Declarations / Constants
 // NOTE: These are **NOT** Arduino pins, they are only needed to be delcared so we can use the LCD library.
 #define I2C_ADDR  0x27 // I2C Address for LCD Display
@@ -69,6 +90,11 @@ LiquidCrystal_I2C lcd(I2C_ADDR, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, 
 NewPing sonar(RANGEFINDER_TRIGGER_PIN, RANGEFINDER_ECHO_PIN, MAX_DISTANCE);                 // initialize ultrasonic sensor library
 PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorKd, DIRECT); // initialize PID to drive robot in a straight line
 
+/*
+*------------------------------------------------------------------------------------------
+* Setup Function
+*------------------------------------------------------------------------------------------
+*/
 void setup() {
   Serial.begin(9600);                            
   
@@ -102,10 +128,14 @@ void setup() {
   attachInterrupt(0, rightISR, CHANGE);  //init hardware interrupt 0 for digital pin 2 
   attachPinChangeInterrupt(11, leftISR, CHANGE); // intialize software interrupt - motor noise caused problems with hardware interrupt 1
   
-  //bluetoothInit(); // wait to pair  robot Bluetooth with controller
+  bluetoothInit(); // wait to pair  robot Bluetooth with controller
 }
 
-// loop to pair robot Bluetooth with controller
+/*
+*------------------------------------------------------------------------------------------
+* Bluetooth Controller Pairing
+*------------------------------------------------------------------------------------------
+*/
 void bluetoothInit() {
   while (1) { // executes until controller message is detected
     if (Serial.available() > 0) {
@@ -116,7 +146,64 @@ void bluetoothInit() {
   }
 }
 
+/*
+*------------------------------------------------------------------------------------------
+* Interrupt service routine for left wheel encoder
+*------------------------------------------------------------------------------------------
+*/
+void leftISR() {
+  if ( (millis() - leftLastTime) >= 10 ) {
+    leftLastTime = millis();
+    leftEncoder++;  //count left wheel encoder interrupts
+  }
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Interrupt service routine for right wheel encoder
+*------------------------------------------------------------------------------------------
+*/
+void rightISR() {
+  if ( (millis() - rightLastTime) >= 10 ) {
+    rightLastTime = millis();
+    rightEncoder++; //count right wheel encoder interrupts
+  }
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Main Loop Function
+*------------------------------------------------------------------------------------------
+*/
 void loop() {
+  if (roboMode == AUTO) {
+    automaticDrivingMode();
+  } else { // full manual mode using controller
+    while (Serial.available() > 0) {
+      char heading = Serial.read();
+      manualDrivingMode(heading);
+    }
+  }
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Initiates sonar pin where ping_timer activates interrupt service routine 
+*------------------------------------------------------------------------------------------
+*/
+void readUltrasonic() {
+  if (millis() >= pingTimer) {   // if it has been pingSpeed milliseconds since last ping, do another ping.
+    pingTimer += pingSpeed;      // set next ping time.
+    sonar.ping_timer(echoCheckISR); // check for ping every 20us
+  }
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Driving commands for automatic mode
+*------------------------------------------------------------------------------------------
+*/
+void automaticDrivingMode() {
   readUltrasonic(); // record ultrasonic distance to obstruction
 
   motorSpeed = map(distanceCm, 3, 200, 50, 300); // maps speed correction factor from distance scaling to velocity scaling
@@ -138,7 +225,7 @@ void loop() {
     leftSpeed = motorSpeed - motorOutput;           
     rightSpeed = motorSpeed + motorOutput;          
     
-    forward(leftSpeed, rightSpeed); // drive towards wall at calculated speed
+    travel(leftSpeed, rightSpeed); // drive towards wall at calculated speed
     demoLCD(1); // print forward information to LCD
     
     lastMotorOutput = motorOutput;
@@ -147,42 +234,55 @@ void loop() {
   
   // turn left when near approaching object
   if ((distanceCm < TURNTHRESH) && (distanceCm != 0)) {
-    turnLeft();
+    turnLeftAuto();
     
     int waitTime = millis();
     while (millis() < (waitTime + 1000)) {
       readUltrasonic();
     }
     
-  }
+  } 
 }
 
-// initiates sonar pin where ping_timer activates interrupt service routine
-void readUltrasonic() {
-  if (millis() >= pingTimer) {   // if it has been pingSpeed milliseconds since last ping, do another ping.
-    pingTimer += pingSpeed;      // set next ping time.
-    sonar.ping_timer(echoCheckISR); // check for ping every 20us
-  }
+/*
+*------------------------------------------------------------------------------------------
+* Driving commands for manual mode
+*------------------------------------------------------------------------------------------
+*/
+void manualDrivingMode(char heading) {
+  if (heading == LEFT)
+    turnLeftManual(TURN_SPEED, TURN_SPEED);
+  else if (heading == RIGHT)
+    turnRightManual(TURN_SPEED, TURN_SPEED);
+  else if (heading == CENTRE)
+    travel(FIRST_GEAR, FIRST_GEAR);
+  else if (heading == FORWARD)
+    travel(FIRST_GEAR, FIRST_GEAR);
+  else if (heading == FORWARD_SPEED_1)
+    travel(SECOND_GEAR, SECOND_GEAR);
+  else if (heading == FORWARD_SPEED_2)
+    travel(THIRD_GEAR, THIRD_GEAR);
+  else if (heading == BACKUP)
+    travel(FIRST_GEAR * (-1), FIRST_GEAR * (-1));  
+  else if (heading == STOP)
+    brake();
 }
 
-// interrupt service routine for left wheel encoder
-void leftISR() {
-  if ( (millis() - leftLastTime) >= 10 ) {
-    leftLastTime = millis();
-    leftEncoder++;  //count left wheel encoder interrupts
-  }
-}
+/*
+*------------------------------------------------------------------------------------------
+* Motor Control Functions
+*
+* Controls the motors given a speed until a certain distance this version of motorControl()
+* has both motors running at different speeds to help make the robot go straight
+*------------------------------------------------------------------------------------------
+*/
 
-// interrupt service routine for left wheel encoder
-void rightISR() {
-  if ( (millis() - rightLastTime) >= 10 ) {
-    rightLastTime = millis();
-    rightEncoder++; //count right wheel encoder interrupts
-  }
-}
-
-// drives robot forward / backward for parameter speed values
-void forward(int leftMotor, int rightMotor) {
+/*
+*------------------------------------------------------------------------------------------
+* Drives robot forward / backward for given parameter speed values
+*------------------------------------------------------------------------------------------
+*/
+void travel(int leftMotor, int rightMotor) {
   if (rightMotor >= 0) {
     analogWrite (RIGHT_SPEED_PIN, rightMotor); //PWM Speed Control (0-255)
     digitalWrite(RIGHT_DIRECTION_PIN, LOW); // LOW = moves forwards
@@ -200,8 +300,24 @@ void forward(int leftMotor, int rightMotor) {
   }
 }
 
-// robot turns left ninety degrees
-void turnLeft() {
+/*
+*------------------------------------------------------------------------------------------
+* Stops both motors
+*------------------------------------------------------------------------------------------
+*/
+void brake() {
+  digitalWrite(RIGHT_DIRECTION_PIN, HIGH); //brake right wheel
+  digitalWrite(LEFT_DIRECTION_PIN, HIGH); //brake left wheel
+  analogWrite (RIGHT_SPEED_PIN, 0); //PWM Speed Control
+  analogWrite (LEFT_SPEED_PIN, 0); //PWM Speed Control
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Robot turns left ninety degrees for automatic mode
+*------------------------------------------------------------------------------------------
+*/
+void turnLeftAuto() {
   demoLCD(0); // print turning information to LCD
   
   // right wheel forward
@@ -214,13 +330,39 @@ void turnLeft() {
    
   delay(TURNTIME);
  
-  // brake wheels
-  analogWrite (RIGHT_SPEED_PIN, STOPSPEED); //PWM Speed Control (0-255)
-  analogWrite (LEFT_SPEED_PIN, STOPSPEED); //PWM Speed Control (0-255)
+  brake(); // stops wheels
 }
 
-// from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
-// Timer2 interrupt calls this function every 24uS to check ultrasonic ping status
+/*
+*------------------------------------------------------------------------------------------
+* Robot turns right degrees for manual mode
+*------------------------------------------------------------------------------------------
+*/
+void turnRightManual(int left, int right) {
+  digitalWrite(RIGHT_DIRECTION_PIN, HIGH); //right wheel moves backwards
+  digitalWrite(LEFT_DIRECTION_PIN, LOW); //left wheel moves forwards, should be HIGH but reads value wrong
+  analogWrite (RIGHT_SPEED_PIN, right * 51 / 80); //PWM Speed Control
+  analogWrite (LEFT_SPEED_PIN, left * 51 / 80); //PWM Speed Control
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Robot turns left degrees for manual mode
+*------------------------------------------------------------------------------------------
+*/
+void turnLeftManual(int left, int right) {
+  digitalWrite(RIGHT_DIRECTION_PIN, LOW); //right wheel moves forwards
+  digitalWrite(LEFT_DIRECTION_PIN, HIGH); //left wheel moves backwards, should be LOW but reads value wrong
+  analogWrite (RIGHT_SPEED_PIN, right * 51 / 80); //PWM Speed Control
+  analogWrite (LEFT_SPEED_PIN, left * 51 / 80); //PWM Speed Control
+}
+
+/*
+*------------------------------------------------------------------------------------------
+* Timer2 interrupt calls this function every 24uS to check ultrasonic ping status
+* From https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
+*------------------------------------------------------------------------------------------
+*/
 void echoCheckISR() {
   if (sonar.check_timer()) { // This is how you check to see if the ping was received.  
     echoPulse = float(sonar.ping_result); // returns time to and from object
@@ -229,8 +371,12 @@ void echoCheckISR() {
   }
 }
  
-// creates a string out of motor direction and speed
-// to send to the controller via bluetooth
+/*
+*------------------------------------------------------------------------------------------
+* Creates a string out of motor direction and speed
+* to send to the controller via bluetooth for automatic mode
+*------------------------------------------------------------------------------------------
+*/
 void createAutoBluetoothMessage(int mode, int vel) {
   String message;
 
@@ -242,8 +388,12 @@ void createAutoBluetoothMessage(int mode, int vel) {
   
   Serial.print(message); // sends message to controller via bluetooth
 }
- 
-// prints fancy LCD messages
+
+/*
+*------------------------------------------------------------------------------------------
+* Prints fancy LCD messages
+*------------------------------------------------------------------------------------------
+*/ 
 void demoLCD(int dir) { // 1 forward, 0 left
   if ((printTimer + 200) > millis()) { // delay print for readability
     lcd.clear();
@@ -263,8 +413,12 @@ void demoLCD(int dir) { // 1 forward, 0 left
     }
   }
 }
- 
-// serial monitor troubleshooting data 
+
+/*
+*------------------------------------------------------------------------------------------
+* Serial monitor troubleshooting printout
+*------------------------------------------------------------------------------------------
+*/ 
 void testSerialPrint() {
   if ( (printTimer + 100) < millis() ) { // delay print for readability
     // Motor serial prints for testing    
@@ -288,7 +442,11 @@ void testSerialPrint() {
   }
 }
   
-// lcd troubleshooting data
+/*
+*------------------------------------------------------------------------------------------
+* LCD troubleshooting printout
+*------------------------------------------------------------------------------------------
+*/ 
 void testLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
   if ( (printTimer + 200) < millis() ) { // delay print for readability
     lcd.clear();

@@ -1,6 +1,6 @@
 // Robot Pacman Ghost
 // Standard Libraries
-#include <math.h>
+//#include <math.h>
 #include <Wire.h>
 
 int autonomous = 0;
@@ -17,7 +17,7 @@ const char BACKUP = 'B';
 
 // LCD
 // NOTE: These are **NOT** Arduino pins, they are only needed to be delcared for so we can use the LCD library.
-#include "LCD.h"
+//#include "LCD.h"
 #include "LiquidCrystal_I2C.h"
 #define I2C_ADDR 0x27 // I2C Address for LCD Display
 #define BACKLIGHT_PIN 3
