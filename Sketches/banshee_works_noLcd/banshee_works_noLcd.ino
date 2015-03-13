@@ -2,45 +2,43 @@
 #include "PID_v1.h"
 #include "PinChangeInt.h"
 #include "NewPing.h"
-#include "WhizzardLCD.h"
+#include "LCD.h"
+#include "LiquidCrystal_I2C.h"
 
-WhizzardLCD wLcd;
-
-// Sonar
+// Ultrasonic constants / declaration
 #define RANGEFINDER_TRIGGER_PIN  8
-#define RANGEFINDER_ECHO_PIN A3
-#define TEMPERATURE_PIN A2
-#define MAX_DISTANCE       380 // maximum reading distance of ultrasonic sensor in cm
+#define RANGEFINDER_ECHO_PIN     A3
+#define TEMPERATURE_PIN          A0
+#define MAX_DISTANCE             380 // maximum reading distance of ultrasonic sensor in cm
+
+const unsigned int pingSpeed = 50;   // frequency of ping readings in ms. 50ms would be 20 times a second.
+unsigned long pingTimer = 0;         // holds the next ping time
+volatile float echoPulse;            // time returned from ultrasonic sensor
+int temperature;                     // ambient temperature value in degrees C
+float soundTime;                     // intermediate ultrasonic sensor calculation value
+float soundVelocity;                 // intermediate ultrasonic sensor calculation value
+
 double distanceCm;     // distance read by ultrasonic sensor in cm
-int temperature;      // temperature value in degrees C
-float soundVelocity;       // intermediate ultrasonic sensor calculation value
-volatile float echoPulse;           // time returned from ultrasonic sensor
-float soundTime;           // intermediate ultrasonic sensor calculation value
-unsigned int pingSpeed = 50; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
-unsigned long pingTimer = 0;     // Holds the next ping time.
+
+
+
+// Ultrasonic PID constants / declarations
 #define wallKp 22 // PID term: dependent on present error
-#define wallKi 50
-// PID term: accumulation of past error
+#define wallKi 50 // PID term: accumulation of past error
 #define wallKd 1  // PID term: prediction of future error based on current rate of change
 double wallSetpoint = 10;
-const int MPU = 0x68; const int GyZOffset = -54;
+int leftSpeed;
+int rightSpeed;
+
 // Motors & Encoders
-// TODO these commented out are all wrong, ignoring for now
-//#define RIGHT_MOTOR_CONTROL 4 // Right motor Direction Control
-//#define RIGHT_MOTOR_SPEED 5 // Right motor Speed Control
-//#define LEFT_MOTOR_CONTROL 7 // Left motor Direction Control
-//#define LEFT_MOTOR_SPEED 6 // Left motor Speed Control
-#define MAX_SPEED 127 // Left motor Speed Control
 #define motorKp 20 // PID term: dependent on present error
 #define motorKi 5  // PID term: accumulation of past error
 #define motorKd 1  // PID term: prediction of future error based on current rate of change
-#define MAX_SPEED 127 // maximum PWM motor speed, to allow full-band PID coverage and avoid saturating the loop
 volatile unsigned long leftLastTime = 0;
 volatile unsigned long rightLastTime = 0;
 volatile long leftEncoder = 0;
 volatile long rightEncoder = 0;
-int leftSpeed;
-int rightSpeed;
+
 double motorSpeed; // TODO fix this type mess I made changing this from int to double for wallPID
 int lastMotorSpeed;
 
@@ -49,9 +47,24 @@ double motorInput;
 double motorOutput = 0;
 double lastMotorOutput = 1;
 double motorSetpoint = 0; // PID Setpoint
-int16_t AcX, AcY, AcZ, GyX, GyY, GyZ, Tmp;
+
 // TODO: comment out to save memory
 unsigned long printTimer = 0;
+
+// LCD Setup for Testing
+// NOTE: These are **NOT** Arduino pins, they are only needed to be delcared so we can use the LCD library.
+#define I2C_ADDR  0x27 // I2C Address for LCD Display
+#define BACKLIGHT_PIN  3
+#define EN_PIN  2
+#define RW_PIN  1
+#define RS_PIN  0
+#define D4_PIN  4
+#define D5_PIN  5
+#define D6_PIN  6
+#define D7_PIN  7
+
+// object declaration
+LiquidCrystal_I2C lcd(I2C_ADDR, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN); // Set the LCD I2C address
 
 NewPing sonar(RANGEFINDER_TRIGGER_PIN, RANGEFINDER_ECHO_PIN, MAX_DISTANCE); // initialize ultrasonic sensor library
 PID wallPID(&distanceCm, &motorSpeed, &wallSetpoint, wallKp, wallKi, wallKd, REVERSE);
@@ -59,12 +72,14 @@ PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorK
 
 void setup() {
   Serial.begin(9600);                            //init the Serial port to print the data
-  Wire.begin();
-  Wire.beginTransmission(MPU);
-  Wire.write(0x6B);  // PWR_MGMT_1 register
-  Wire.write(0);     // set to zero (wakes up the MPU-6050)
-  Wire.endTransmission(true);
-  wLcd.init();
+  
+  // LCD initialization
+  lcd.begin(16, 2);        // initialize the lcd for 16 chars 2 lines and turn on backlight
+  lcd.home();
+  lcd.clear();
+  lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
+  lcd.setBacklight(HIGH);
+  
   // Motor Setup
   for (int i = 4; i <= 7; i++) {                 // Motor Pin Assignments
     pinMode(i, OUTPUT);
@@ -85,16 +100,12 @@ void setup() {
   temperature = (500 * analogRead(TEMPERATURE_PIN)) >> 10;
   soundVelocity = (331.3 + (0.6 * temperature)); // speed of sound
   
-  bluetoothInit();
+  //bluetoothInit();
 }
 
 void bluetoothInit() {
   while (1) {
     if (Serial.available() > 0) {
-      int mode = Serial.parseInt();
-      //if (mode == 0 || mode == 1) {
-        //autonomous = mode;
-      //}
      Serial.println("!");
      Serial.flush();
      break;
@@ -102,12 +113,15 @@ void bluetoothInit() {
   }
 }
 
-void autoModeLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
-    
-    wLcd.makestuff(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+void testLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
+    lcd.clear();
 
-    //lcd.rightToLeft();
-    /*lcd.setCursor(6, 0);
+    lcd.leftToRight();
+    lcd.setCursor(0, 0);
+    lcd.print("L: ");
+
+    lcd.rightToLeft();
+    lcd.setCursor(6, 0);
     lcd.print(leftSpeed);
     lcd.setCursor(16, 0);
     lcd.print(leftEncoder);
@@ -121,7 +135,6 @@ void autoModeLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncode
     lcd.print(rightSpeed);
     lcd.setCursor(16, 1);
     lcd.print(rightEncoder);
-  //}*/
 }
 
 // creates a string out of individual motor speeds, encoder values and music selection value
@@ -170,21 +183,20 @@ void loop() {
 //      motorSetpoint = motorSetpoint + 10;
 //      turnLastTime = turnLastTime + 5000;
 //    }
-//
-// // records the distance to an obstruction
+
+ // records the distance to an obstruction
   if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
     pingTimer += pingSpeed;      // Set the next ping time.
     sonar.ping_timer(echoCheck); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
   }
-//    wLcd.clearLine(0);
-//    wLcd.print(String(distanceCm));
+
     motorSpeed = map(distanceCm, 3, 200, 50, 300); // last value from 127 
-//  
-//// --------PID CONTROL CASE EXAMPLE--------    
-//// When the encoder difference goes POSITIVE, the right wheel is moving faster.
-//// So with DIRECT control, the output will go NEGATIVE to try and control it.
-//// Since output is NEGATIVE, we should SUBTRACT it from the leftSpeed to make the left wheel catch up,
-//// and ADD output to rightSpeed to slow the right wheel down.
+  
+// --------PID CONTROL CASE EXAMPLE--------    
+// When the encoder difference goes POSITIVE, the right wheel is moving faster.
+// So with DIRECT control, the output will go NEGATIVE to try and control it.
+// Since output is NEGATIVE, we should SUBTRACT it from the leftSpeed to make the left wheel catch up,
+// and ADD output to rightSpeed to slow the right wheel down.
   motorInput = rightEncoder - leftEncoder;    
   motorPID.Compute(); // updates PID output 
   boolean motorOutputChanged = (motorOutput != lastMotorOutput);
@@ -197,14 +209,22 @@ void loop() {
     lastMotorSpeed = motorSpeed;
   }
   
-  if (distanceCm < (wallSetpoint + 1)) {
-
-    //turnGyroLeft2();
+  if (distanceCm < (wallSetpoint + 1) && (distanceCm != 0 )) {
     turnLeft();
-    delay(500);
+    int time = millis();
+    pingTimer = millis();
+    while (millis() < (time + 1000)) {
+      if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
+        pingTimer += pingSpeed;      // Set the next ping time.
+        sonar.ping_timer(echoCheck); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
+      }
+    }
   }
-  //autoModeLCD(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
-  //createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(distanceCm);
+  //testLCD(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
+  createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 }
 
 void leftISR() {
@@ -239,92 +259,32 @@ void forward(int leftMotor, int rightMotor) {
     digitalWrite(7, HIGH);  // HIGH = moves backward
   }
 }
-//Updates all acceleration and angular velocity readings
-void readAll() {
-  Wire.beginTransmission(MPU);
-  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
-  Wire.endTransmission(false);
-  Wire.requestFrom(MPU, 14, true); // request a total of 14 registers
-  AcX = Wire.read() << 8 | Wire.read(); //  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
-  AcY = Wire.read() << 8 | Wire.read(); // // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-  AcZ = Wire.read() << 8 | Wire.read(); // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-  Tmp = Wire.read() << 8 | Wire.read(); // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
-  GyX = Wire.read() << 8 | Wire.read(); // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
-  GyY = Wire.read() << 8 | Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
-  GyZ = Wire.read() << 8 | Wire.read() + GyZOffset; // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-
-}
-
-//Prints all the acceleration and angular velocity readings
-void printAll() {
-  //Print out the acceleration values for the x, y, z axises (scaled by a factor of G in m/s^2)
-  Serial.print("AcX = "); Serial.print(AcX);
-  Serial.print(" | AcY = "); Serial.print(AcY);
-  Serial.print(" | AcZ = "); Serial.print(AcZ);
-  //equation for temperature in degrees C from datasheet
-  Serial.print(" | Tmp = "); Serial.print(Tmp / 340.00 + 36.53);
-  //Print out the angular velocity values about the x, y, z axises (scaled by a factor in degrees/second)
-  Serial.print(" | GyX = "); Serial.print(GyX);
-  Serial.print(" | GyY = "); Serial.print(GyY);
-  Serial.print(" | GyZ = "); Serial.println(GyZ);
-}
-
-void turnGyroLeft2(){
-  analogWrite (5, 120); //PWM Speed Control (0-255)
-  digitalWrite(4, LOW); // HIGH = moves forwards
- 
-   // left goes backward 
-  analogWrite (6, 120); //PWM Speed Control (0-255)
-  digitalWrite(7, HIGH);  // HIGH = moves backward
-  
-  delay(635);
-  
-  analogWrite (5, 0); //PWM Speed Control (0-255)
-  analogWrite (6, 0); //PWM Speed Control (0-255)
-}
-void turnGyroLeft(){
-  analogWrite (5, 120); //PWM Speed Control (0-255)
-  digitalWrite(4, LOW); // HIGH = moves forwards
- 
-   // left goes backward 
-  analogWrite (6, 120); //PWM Speed Control (0-255)
-  digitalWrite(7, HIGH);  // HIGH = moves backward
-  readAll();
-  float time = millis();
-  float totalDegrees = 0;
-  while (abs(totalDegrees) <= 80){
-    delay(50);
-    float GyZdps = GyZ/131;
-    float currDegrees = GyZdps * (millis() - time) / 1000;
-    //Serial.print("Delay :");
-    //Serial.println(millis()-time);
-    time = millis();
-    totalDegrees += currDegrees;
-    //Serial.print("Total Degrees: ");
-    //Serial.println(totalDegrees);
-    readAll();
-  }
-  analogWrite (5, 0); //PWM Speed Control (0-255)
-  analogWrite (6, 0); //PWM Speed Control (0-255)
-}
 
 void turnLeft() {
-  analogWrite (5, 127); //PWM Speed Control (0-255)
+   analogWrite (5, 127); //PWM Speed Control (0-255)
    digitalWrite(4, LOW); // HIGH = moves forwards
  
    // left goes backward 
    analogWrite (6, 127); //PWM Speed Control (0-255)
    digitalWrite(7, HIGH);  // HIGH = moves backward
    
- if (leftEncoder < rightEncoder) { // skewed left, less turn
-   delay(650);
- }else { // skewed right, less turn
-   delay(650);
- }
+ /*rightEncoder = 0;
+ leftEncoder = 0;
  
- analogWrite (5, 0); //PWM Speed Control (0-255)
+ while((rightEncoder < 12)  && (leftEncoder < 10)) {
+     //continue;
+ }*/
+ //if (leftEncoder < rightEncoder) { // scewed left, less turn
+   //delay(650);
+ //}else { // scewed right, less turn
+   delay(630);
+ //}
+ 
+   analogWrite (5, 0); //PWM Speed Control (0-255)
    analogWrite (6, 0); //PWM Speed Control (0-255)
    
+   rightEncoder = 0;
+   leftEncoder = 0;
 }
 
 // from https://code.google.com/p/arduino-new-ping/wiki/Ping_Event_Timer_Sketch
