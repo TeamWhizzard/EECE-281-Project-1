@@ -10,17 +10,13 @@
 #define RANGEFINDER_ECHO_PIN     A3
 #define TEMPERATURE_PIN          A0
 #define MAX_DISTANCE             380 // maximum reading distance of ultrasonic sensor in cm
-
 const unsigned int pingSpeed = 50;   // frequency of ping readings in ms. 50ms would be 20 times a second.
 unsigned long pingTimer = 0;         // holds the next ping time
 volatile float echoPulse;            // time returned from ultrasonic sensor
 int temperature;                     // ambient temperature value in degrees C
 float soundTime;                     // intermediate ultrasonic sensor calculation value
 float soundVelocity;                 // intermediate ultrasonic sensor calculation value
-
 double distanceCm;     // distance read by ultrasonic sensor in cm
-
-
 
 // Ultrasonic PID constants / declarations
 #define wallKp 22 // PID term: dependent on present error
@@ -38,7 +34,6 @@ volatile unsigned long leftLastTime = 0;
 volatile unsigned long rightLastTime = 0;
 volatile long leftEncoder = 0;
 volatile long rightEncoder = 0;
-
 double motorSpeed; // TODO fix this type mess I made changing this from int to double for wallPID
 int lastMotorSpeed;
 
@@ -63,9 +58,8 @@ unsigned long printTimer = 0;
 #define D6_PIN  6
 #define D7_PIN  7
 
-// object declaration
+// object declarations
 LiquidCrystal_I2C lcd(I2C_ADDR, EN_PIN, RW_PIN, RS_PIN, D4_PIN, D5_PIN, D6_PIN, D7_PIN); // Set the LCD I2C address
-
 NewPing sonar(RANGEFINDER_TRIGGER_PIN, RANGEFINDER_ECHO_PIN, MAX_DISTANCE); // initialize ultrasonic sensor library
 PID wallPID(&distanceCm, &motorSpeed, &wallSetpoint, wallKp, wallKi, wallKd, REVERSE);
 PID motorPID(&motorInput, &motorOutput, &motorSetpoint, motorKp, motorKi, motorKd, DIRECT);
@@ -85,7 +79,6 @@ void setup() {
     pinMode(i, OUTPUT);
   }
   attachInterrupt(0, rightISR, CHANGE);  //init interrupt 0 for digital pin 2
-  //attachInterrupt(LEFT, leftISR, RISING);   //init interrupt 1 for digital pin 3  
   attachPinChangeInterrupt(11, leftISR, CHANGE); // Pin 3 produces interference on Pin 2 so we dug up this software excitement.
   
   // PID controller setup
@@ -111,6 +104,28 @@ void bluetoothInit() {
      break;
     }
   }
+}
+
+//int prettytime = 0;
+void prettyLCD(int dir) { // 1 forward, 0 left
+  
+  //if ((prettytime + 100) > millis()) {
+   lcd.clear();
+  
+   if (dir == 1) {
+     lcd.setCursor(0,0);
+     lcd.print("*****FORWARD****");
+     lcd.setCursor(0,1);
+     lcd.print("     " + String(rightSpeed));
+   } else {
+    lcd.setCursor(0,0);
+    lcd.print("//////LEFT//////");
+    lcd.setCursor(0,1);
+    lcd.print("////////////////"); 
+   }
+   //prettytime = millis();
+  //}
+ 
 }
 
 void testLCD(int rightSpeed, int leftSpeed, int rightEncoder, int leftEncoder) {
@@ -153,6 +168,9 @@ void createBluetoothMessage(int speedRight, int speedLeft, int encoderRight, int
 void bluetoothMessage(String message) {
   Serial.print(message); // prints message containing motor speeds and encoder values to the serial monitor
 }
+
+int prettyTimer = 0;
+int prettySpeed = 200;
 
 void loop() {
 //  if ( (printTimer + 100) < millis() ) {
@@ -205,6 +223,11 @@ void loop() {
     leftSpeed = motorSpeed - motorOutput;           
     rightSpeed = motorSpeed + motorOutput;          
     forward(leftSpeed, rightSpeed);
+    
+    if (millis() >= prettyTimer) {
+      prettyTimer += prettySpeed;
+      prettyLCD(1);
+    }
     lastMotorOutput = motorOutput;
     lastMotorSpeed = motorSpeed;
   }
@@ -220,9 +243,7 @@ void loop() {
       }
     }
   }
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(distanceCm);
+
   //testLCD(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
   createBluetoothMessage(rightSpeed, leftSpeed, rightEncoder, leftEncoder);
 }
@@ -261,6 +282,8 @@ void forward(int leftMotor, int rightMotor) {
 }
 
 void turnLeft() {
+  prettyLCD(0);
+  
    analogWrite (5, 127); //PWM Speed Control (0-255)
    digitalWrite(4, LOW); // HIGH = moves forwards
  
