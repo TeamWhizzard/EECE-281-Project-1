@@ -31,7 +31,11 @@ const int pinPiezoBass = 6;
 // MP6050 Gyro/Accell Tracking Variables
 const int MPU = 0x68; // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
+<<<<<<< HEAD
+const int COUNT_ROTATE_THRESHOLD = 150;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
+=======
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
+>>>>>>> origin/master
 const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = -30;  //Start of degree boundary to indicate turning left
@@ -109,8 +113,13 @@ void setup() {
   bass.begin(pinPiezoBass);
   
   // connect to and send state information to robot
+<<<<<<< HEAD
+  //bluetoothInit();
+  //lastButtonState = digitalRead(BUTTON);
+=======
 //  bluetoothInit();
 //  lastButtonState = digitalRead(BUTTON);
+>>>>>>> origin/master
   playSong();
 }
 
@@ -288,39 +297,25 @@ int calcFilterAngle(float gyroAngle, float acelAngle) {
 
 // LCD FUNCTIONS
 void autoModeLCD() {
+  
   while (Serial.available() > 0) {
-    int rightSpeed;
-    int leftSpeed;
-    int rightEncoder;
-    int leftEncoder;
-
-    rightSpeed = Serial.parseInt();
-    leftSpeed = Serial.parseInt();
-    rightEncoder = Serial.parseInt();
-    leftEncoder = Serial.parseInt();
-
-    lcd.clear();
-
-    lcd.leftToRight();
-    lcd.setCursor(0, 0);
-    lcd.print("L: ");
-
-    lcd.rightToLeft();
-    lcd.setCursor(6, 0);
-    lcd.print(leftSpeed);
-    lcd.setCursor(16, 0);
-    lcd.print(leftEncoder);
-
-    lcd.leftToRight();
-    lcd.setCursor(0, 1);
-    lcd.print("R: ");
-
-    lcd.rightToLeft();
-    lcd.setCursor(6, 1);
-    lcd.print(rightSpeed);
-    lcd.setCursor(16, 1);
-    lcd.print(rightEncoder);
+    //lcd.clear();
+    
+    int mode = Serial.parseInt(); // where 0 is forward, 1 is turn left
+    if (mode == 0) {
+      lcd.setCursor(0, 0);
+      lcd.print("*****FORWARD****");
+      int vel = Serial.parseInt();
+      lcd.setCursor(0,1);
+      lcd.print("  SPEED " + String(vel));
+    } else {
+      lcd.setCursor(0,0);
+      lcd.print("\\\\\\\\\\\\\\\\");
+      lcd.setCursor(0, 1);
+      lcd.print("\\\TURN LEFT\\\\");
+    }
   }
+  
 }
 
 //clears a given line on the lcd
@@ -331,8 +326,27 @@ void clearLine(int line) {
 }
 
 void manualModeLCD() {
-  // TODO add more?
   lcd.setCursor(0, 0);
+<<<<<<< HEAD
+  lcd.print("  Manual Mode!  ");
+  lcd.setCursor(0, 1);
+  lcd.print("                ");
+  lcd.setCursor(0, 1);
+  if (turnState == left)
+    lcd.print("  Rotating Left ");
+  else if (turnState == right)
+    lcd.print(" Rotating Right ");
+  else if (speedState == forward)
+    lcd.print(" Forward at 40% ");
+  else if (speedState == forward2)
+    lcd.print(" Forward at 70% ");
+  else if (speedState == forward3)
+    lcd.print(" Forward at 100%");
+  else if (speedState == stopped)
+    lcd.print("     Stopped    ");
+  else if (speedState == reverse)
+    lcd.print("   Backing Up   ");
+=======
   lcd.print("Manual Mode!");
   clearLine(1);
   if (turnState == left)
@@ -349,6 +363,7 @@ void manualModeLCD() {
     lcd.print("Stopped");
   else if (speedState == reverse)
     lcd.print("Backing up");
+>>>>>>> origin/master
 }
 
 void debug() {
@@ -359,6 +374,12 @@ void debug() {
 }
 
 void loop() {
+<<<<<<< HEAD
+  //lastButtonState = digitalRead(BUTTON);
+  
+  // auto and manual switching main code
+  //if (lastButtonState == MANUAL) {
+=======
   // check for change in button state
 //  int newButtonState = digitalRead(BUTTON);
 //  if (newButtonState != lastButtonState) {
@@ -367,11 +388,18 @@ void loop() {
 //  }
   
 //  if (lastButtonState == MANUAL) {
+>>>>>>> origin/master
     countRotate();  //While the controller is moving, record total degrees that the controller turned
     manualModeLCD();
     checkTurnControl();
     checkSpeedControl();
+<<<<<<< HEAD
+  //} else {
+    //autoModeLCD();
+  //}
+=======
 //  } else {
 //    autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
 //  }
+>>>>>>> origin/master
 }
