@@ -31,11 +31,7 @@ const int pinPiezoBass = 6;
 // MP6050 Gyro/Accell Tracking Variables
 const int MPU = 0x68; // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
-<<<<<<< HEAD
-const int COUNT_ROTATE_THRESHOLD = 150;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
-=======
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
->>>>>>> origin/master
 const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = -30;  //Start of degree boundary to indicate turning left
@@ -113,21 +109,17 @@ void setup() {
   bass.begin(pinPiezoBass);
   
   // connect to and send state information to robot
-<<<<<<< HEAD
-  //bluetoothInit();
-  //lastButtonState = digitalRead(BUTTON);
-=======
-//  bluetoothInit();
-//  lastButtonState = digitalRead(BUTTON);
->>>>>>> origin/master
-  playSong();
+
+  bluetoothInit();
+  lastButtonState = digitalRead(BUTTON);
+  playThemeSong();
 }
 
 // Ensures a Bluetooth Connection. Does not continue until established.
 void bluetoothInit() {
   while (1) {
     lastButtonState = digitalRead(BUTTON);
-    Serial.println(lastButtonState);
+    Serial.print(lastButtonState);
     delay(250);
     // Robot has confirmed the bluetooth connection, continue with program.
     if (Serial.available() > 0) {
@@ -138,11 +130,22 @@ void bluetoothInit() {
 }
 
 // Pacman music!
-void playSong () {
+void playThemeSong () {
   int numNotes = sizeof(theme_melody) / sizeof(int);
   for (int note = 0; note < numNotes; note++) {
     treble.play(theme_melody[note]);
     bass.play(theme_bass[note]);
+    delay(SIXTYFOURTH);
+    treble.stop();
+    bass.stop();
+  }
+}
+
+// Musical indication of mode switch
+void playStateChange () {
+  int numNotes = sizeof(theme_change) / sizeof(int);
+  for (int note = 0; note < numNotes; note++) {
+    treble.play(theme_change[note]);
     delay(SIXTYFOURTH);
     treble.stop();
     bass.stop();
@@ -327,26 +330,7 @@ void clearLine(int line) {
 
 void manualModeLCD() {
   lcd.setCursor(0, 0);
-<<<<<<< HEAD
-  lcd.print("  Manual Mode!  ");
-  lcd.setCursor(0, 1);
-  lcd.print("                ");
-  lcd.setCursor(0, 1);
-  if (turnState == left)
-    lcd.print("  Rotating Left ");
-  else if (turnState == right)
-    lcd.print(" Rotating Right ");
-  else if (speedState == forward)
-    lcd.print(" Forward at 40% ");
-  else if (speedState == forward2)
-    lcd.print(" Forward at 70% ");
-  else if (speedState == forward3)
-    lcd.print(" Forward at 100%");
-  else if (speedState == stopped)
-    lcd.print("     Stopped    ");
-  else if (speedState == reverse)
-    lcd.print("   Backing Up   ");
-=======
+
   lcd.print("Manual Mode!");
   clearLine(1);
   if (turnState == left)
@@ -363,7 +347,6 @@ void manualModeLCD() {
     lcd.print("Stopped");
   else if (speedState == reverse)
     lcd.print("Backing up");
->>>>>>> origin/master
 }
 
 void debug() {
@@ -374,32 +357,26 @@ void debug() {
 }
 
 void loop() {
-<<<<<<< HEAD
-  //lastButtonState = digitalRead(BUTTON);
-  
-  // auto and manual switching main code
-  //if (lastButtonState == MANUAL) {
-=======
   // check for change in button state
-//  int newButtonState = digitalRead(BUTTON);
-//  if (newButtonState != lastButtonState) {
-//    Serial.println(newButtonState);
-//    lastButtonState = newButtonState;
-//  }
+  int newButtonState = digitalRead(BUTTON);
+  if (newButtonState != lastButtonState) {
+    lastButtonState = newButtonState;
+    Serial.print(newButtonState);
+    while(1) {
+      if (Serial.available()) {
+        Serial.read();
+        playStateChange();
+        break;
+      }
+    }
+  }
   
-//  if (lastButtonState == MANUAL) {
->>>>>>> origin/master
+  if (lastButtonState == MANUAL) {
     countRotate();  //While the controller is moving, record total degrees that the controller turned
     manualModeLCD();
     checkTurnControl();
     checkSpeedControl();
-<<<<<<< HEAD
-  //} else {
-    //autoModeLCD();
+  } //else {
+    //autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
   //}
-=======
-//  } else {
-//    autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
-//  }
->>>>>>> origin/master
 }
