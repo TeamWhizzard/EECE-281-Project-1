@@ -31,7 +31,11 @@ const int pinPiezoBass = 6;
 // MP6050 Gyro/Accell Tracking Variables
 const int MPU = 0x68; // I2C address of the MPU-6050
 const int readDelay = 150;   //Delay to read new acceleration/angular velocity values
+<<<<<<< HEAD
+const int COUNT_ROTATE_THRESHOLD = 150;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
+=======
 const int COUNT_ROTATE_THRESHOLD = 125;  //Threshold of gyro rotation before counting it(due to hovering values at rest)
+>>>>>>> origin/master
 const int RIGHT_END_BOUNDARY = 90;  //End of degree boundary to indicate turning right
 const int RIGHT_START_BOUNDARY = 30;  //Start of degree boundary indicate turning right
 const int LEFT_START_BOUNDARY = -30;  //Start of degree boundary to indicate turning left
@@ -75,6 +79,16 @@ enum controlSpeedState {
 controlTurnState turnState = center;
 controlSpeedState speedState = middle;
 
+// LCD Custom Characters
+byte slices[6][8] = {
+  {B00000, B00000, B00000, B00000, B00000, B00000, B00000, B00000},
+  {B10000, B10000, B10000, B10000, B10000, B10000, B10000, B10000},
+  {B11000, B11000, B11000, B11000, B11000, B11000, B11000, B11000},
+  {B11100, B11100, B11100, B11100, B11100, B11100, B11100, B11100},
+  {B11110, B11110, B11110, B11110, B11110, B11110, B11110, B11110},
+  {B11111, B11111, B11111, B11111, B11111, B11111, B11111, B11111}
+};
+
 void setup() {
   Serial.begin(9600);
   pinMode(BUTTON, INPUT);
@@ -90,27 +104,30 @@ void setup() {
   lcd.begin(16, 2);
   lcd.home();
   lcd.clear();
+  for (int i = 0; i < 6; i++) { // Create custom LCD characters
+    lcd.createChar(i, slices[i]);
+  }
   
   // intialize piezo buzzers
   treble.begin(pinPiezoTreble);
   bass.begin(pinPiezoBass);
   
   // connect to and send state information to robot
-  lcd.setCursor(0, 0);
-  lcd.print("****TIME FOR****");
-  lcd.setCursor(0, 1);
-  lcd.print("*****PACMAN*****");
-  
-  bluetoothInit();
-  lastButtonState = digitalRead(BUTTON);
-  playThemeSong();
+<<<<<<< HEAD
+  //bluetoothInit();
+  //lastButtonState = digitalRead(BUTTON);
+=======
+//  bluetoothInit();
+//  lastButtonState = digitalRead(BUTTON);
+>>>>>>> origin/master
+  playSong();
 }
 
 // Ensures a Bluetooth Connection. Does not continue until established.
 void bluetoothInit() {
   while (1) {
     lastButtonState = digitalRead(BUTTON);
-    Serial.print(lastButtonState);
+    Serial.println(lastButtonState);
     delay(250);
     // Robot has confirmed the bluetooth connection, continue with program.
     if (Serial.available() > 0) {
@@ -121,22 +138,11 @@ void bluetoothInit() {
 }
 
 // Pacman music!
-void playThemeSong () {
+void playSong () {
   int numNotes = sizeof(theme_melody) / sizeof(int);
   for (int note = 0; note < numNotes; note++) {
     treble.play(theme_melody[note]);
     bass.play(theme_bass[note]);
-    delay(SIXTYFOURTH);
-    treble.stop();
-    bass.stop();
-  }
-}
-
-// Musical indication of mode switch
-void playStateChange () {
-  int numNotes = sizeof(theme_change) / sizeof(int);
-  for (int note = 0; note < numNotes; note++) {
-    treble.play(theme_change[note]);
     delay(SIXTYFOURTH);
     treble.stop();
     bass.stop();
@@ -195,6 +201,10 @@ void countRotate() {
     gyroSpeedDegrees += currSpeedDegrees;
     totalDegrees = calcFilterAngle(gyroDegrees, xTilt);  //Calculate the filter angle
     totalSpeedDegrees = calcFilterAngle(gyroSpeedDegrees, yTilt);
+    //Serial.print("Degrees per Second: ");  //Print out the dps reading
+    //Serial.println(GyYdps);
+    //Serial.print("Total Degrees turned: ");  //Print out total degrees turned so far
+    //Serial.println(totalDegrees);
     readAll();
   }
 }
@@ -211,6 +221,9 @@ void checkSpeedControl() {
     Serial.println("B");
     speedState = reverse;
   }
+  
+  //if (totalSpeedDegrees > STOP_START_BOUNDARY && totalSpeedDegrees < FORWARD_END_BOUNDARY && speedState != stopped) {
+  //}
   
   if (totalSpeedDegrees >= FORWARD_START_BOUNDARY && totalSpeedDegrees <= FORWARD_END_BOUNDARY && speedState != forward) {
     Serial.println("F");
@@ -269,6 +282,12 @@ void calibrateError() {
 void processTilt() {
   xTilt = atan2(AcX, sqrt(pow(AcY, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
   yTilt = atan2(AcY, sqrt(pow(AcX, 2) + pow(AcZ, 2))) * RADIAN_TO_DEGREES;
+  //zTilt = atan2(sqrt(pow(AcX, 2)+ pow(AcY, 2)),AcZ) * RADIAN_TO_DEGREES;
+  //Serial.print("X Tilt = "); Serial.print(xTilt);
+  //Serial.print(" | Y Tilt = "); Serial.print(yTilt);
+  //  Serial.print(" | Z Tilt = "); Serial.println(zTilt);
+  //Serial.println("-----");
+
 }
 
 //Perform the complimentary filter to the gyro and accell angle for the best angle result
@@ -279,26 +298,22 @@ int calcFilterAngle(float gyroAngle, float acelAngle) {
 // LCD FUNCTIONS
 void autoModeLCD() {
   
-  if (Serial.available() > 0) {
-    lcd.clear();
-
+  while (Serial.available() > 0) {
+    //lcd.clear();
+    
     int mode = Serial.parseInt(); // where 0 is forward, 1 is turn left
     if (mode == 0) {
       lcd.setCursor(0, 0);
       lcd.print("*****FORWARD****");
       int vel = Serial.parseInt();
       lcd.setCursor(0,1);
-      lcd.print("  " + String(vel) + "CM");
-      //lcd.print(String(millis()));  
-  } else {
+      lcd.print("  SPEED " + String(vel));
+    } else {
       lcd.setCursor(0,0);
       lcd.print("\\\\\\\\\\\\\\\\");
       lcd.setCursor(0, 1);
       lcd.print("\\\TURN LEFT\\\\");
     }
-    
-    delay(500);
-    Serial.flush();
   }
   
 }
@@ -311,9 +326,27 @@ void clearLine(int line) {
 }
 
 void manualModeLCD() {
-  lcd.clear();
   lcd.setCursor(0, 0);
-
+<<<<<<< HEAD
+  lcd.print("  Manual Mode!  ");
+  lcd.setCursor(0, 1);
+  lcd.print("                ");
+  lcd.setCursor(0, 1);
+  if (turnState == left)
+    lcd.print("  Rotating Left ");
+  else if (turnState == right)
+    lcd.print(" Rotating Right ");
+  else if (speedState == forward)
+    lcd.print(" Forward at 40% ");
+  else if (speedState == forward2)
+    lcd.print(" Forward at 70% ");
+  else if (speedState == forward3)
+    lcd.print(" Forward at 100%");
+  else if (speedState == stopped)
+    lcd.print("     Stopped    ");
+  else if (speedState == reverse)
+    lcd.print("   Backing Up   ");
+=======
   lcd.print("Manual Mode!");
   clearLine(1);
   if (turnState == left)
@@ -330,6 +363,7 @@ void manualModeLCD() {
     lcd.print("Stopped");
   else if (speedState == reverse)
     lcd.print("Backing up");
+>>>>>>> origin/master
 }
 
 void debug() {
@@ -340,31 +374,32 @@ void debug() {
 }
 
 void loop() {
-  // check for change in button state
-  int newButtonState = digitalRead(BUTTON);
-  if (newButtonState != lastButtonState) {
-    lastButtonState = newButtonState;
-    Serial.print(newButtonState);
-    while(1) {
-      if (Serial.available()) {
-        Serial.read();
-        playStateChange();
-        break;
-      }
-    }
-  }
+<<<<<<< HEAD
+  //lastButtonState = digitalRead(BUTTON);
   
-  if (lastButtonState == MANUAL) {
+  // auto and manual switching main code
+  //if (lastButtonState == MANUAL) {
+=======
+  // check for change in button state
+//  int newButtonState = digitalRead(BUTTON);
+//  if (newButtonState != lastButtonState) {
+//    Serial.println(newButtonState);
+//    lastButtonState = newButtonState;
+//  }
+  
+//  if (lastButtonState == MANUAL) {
+>>>>>>> origin/master
     countRotate();  //While the controller is moving, record total degrees that the controller turned
     manualModeLCD();
     checkTurnControl();
     checkSpeedControl();
-  } else { // automatic mode
+<<<<<<< HEAD
+  //} else {
     //autoModeLCD();
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("****AUTOMATIC***");
-    lcd.setCursor(0, 1);
-    lcd.print("*******MODE*******");
-  }
+  //}
+=======
+//  } else {
+//    autoModeLCD(); //Checks if there is serial data passed to the controller and prints onto the LCD(fairly fast, won't interrupt angle measuring)
+//  }
+>>>>>>> origin/master
 }
